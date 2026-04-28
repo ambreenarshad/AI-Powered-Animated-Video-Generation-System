@@ -1,0 +1,72 @@
+{
+  "scenes": [
+    {
+      "scene_id": 1,
+      "location": "Deserted Gas Station at Night",
+      "characters": ["Ryan", "Clara"],
+      "dialogue": [
+        {
+          "speaker": "Ryan",
+          "line": "This place gives me a bad feeling.",
+          "visual_cue": "Wide shot of empty gas station under dim neon lights"
+        },
+        {
+          "speaker": "Clara",
+          "line": "We don’t have a choice. The car won’t make it further.",
+          "visual_cue": "Medium shot of Clara leaning against the car"
+        }
+      ]
+    },
+    {
+      "scene_id": 2,
+      "location": "Inside Gas Station Store",
+      "characters": ["Ryan", "Clara"],
+      "dialogue": [
+        {
+          "speaker": "Clara",
+          "line": "Why is everything still running if no one's here?",
+          "visual_cue": "Pan shot across stocked shelves and humming fridge"
+        },
+        {
+          "speaker": "Ryan",
+          "line": "I think we’re being watched.",
+          "visual_cue": "Close-up of Ryan noticing a security camera moving"
+        }
+      ]
+    },
+    {
+      "scene_id": 3,
+      "location": "Back Room of Gas Station",
+      "characters": ["Ryan", "Clara"],
+      "dialogue": [
+        {
+          "speaker": "Ryan",
+          "line": "There’s something behind this door.",
+          "visual_cue": "Close-up of rusty door handle shaking slightly"
+        },
+        {
+          "speaker": "Clara",
+          "line": "Open it. We need answers.",
+          "visual_cue": "Tense silence as Clara steps back cautiously"
+        }
+      ]
+    },
+    {
+      "scene_id": 4,
+      "location": "Hidden Underground Bunker",
+      "characters": ["Ryan", "Clara"],
+      "dialogue": [
+        {
+          "speaker": "Clara",
+          "line": "What is this place…?",
+          "visual_cue": "Reveal shot of a bunker filled with old equipment"
+        },
+        {
+          "speaker": "Ryan",
+          "line": "I think we just stepped into something much bigger.",
+          "visual_cue": "Slow zoom out showing the vast underground space"
+        }
+      ]
+    }
+  ]
+}

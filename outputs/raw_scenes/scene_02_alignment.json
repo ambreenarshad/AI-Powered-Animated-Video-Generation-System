@@ -1,0 +1,113 @@
+{
+  "scene_id": 2,
+  "audio_path": "outputs/audio\\scene_02.wav",
+  "video_path": "outputs/frames\\scene_02_swapped.mp4",
+  "audio_duration": 6.384,
+  "fps": 25.0,
+  "total_frames": 160,
+  "mux_status": "synced_with_audio",
+  "line_timing_summary": [
+    {
+      "speaker": "Ali",
+      "start_frame": 0,
+      "end_frame": 104
+    },
+    {
+      "speaker": "Sara",
+      "start_frame": 104,
+      "end_frame": 160
+    }
+  ],
+  "alignment_sample": [
+    {
+      "frame": 0,
+      "audio_ms": 0.0,
+      "speaker": "Ali",
+      "rms": 0.0
+    },
+    {
+      "frame": 1,
+      "audio_ms": 40.0,
+      "speaker": "Ali",
+      "rms": 0.0
+    },
+    {
+      "frame": 2,
+      "audio_ms": 80.0,
+      "speaker": "Ali",
+      "rms": 0.0
+    },
+    {
+      "frame": 3,
+      "audio_ms": 120.0,
+      "speaker": "Ali",
+      "rms": 0.0
+    },
+    {
+      "frame": 4,
+      "audio_ms": 160.0,
+      "speaker": "Ali",
+      "rms": 0.0001
+    },
+    {
+      "frame": 5,
+      "audio_ms": 200.0,
+      "speaker": "Ali",
+      "rms": 0.0114
+    },
+    {
+      "frame": 6,
+      "audio_ms": 240.0,
+      "speaker": "Ali",
+      "rms": 0.0806
+    },
+    {
+      "frame": 7,
+      "audio_ms": 280.0,
+      "speaker": "Ali",
+      "rms": 0.2661
+    },
+    {
+      "frame": 8,
+      "audio_ms": 320.0,
+      "speaker": "Ali",
+      "rms": 0.1344
+    },
+    {
+      "frame": 9,
+      "audio_ms": 360.0,
+      "speaker": "Ali",
+      "rms": 0.0658
+    },
+    {
+      "frame": 10,
+      "audio_ms": 400.0,
+      "speaker": "Ali",
+      "rms": 0.0436
+    },
+    {
+      "frame": 11,
+      "audio_ms": 440.0,
+      "speaker": "Ali",
+      "rms": 0.0222
+    },
+    {
+      "frame": 12,
+      "audio_ms": 480.0,
+      "speaker": "Ali",
+      "rms": 0.073
+    },
+    {
+      "frame": 13,
+      "audio_ms": 520.0,
+      "speaker": "Ali",
+      "rms": 0.1653
+    },
+    {
+      "frame": 14,
+      "audio_ms": 560.0,
+      "speaker": "Ali",
+      "rms": 0.1381
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "phase": 2,
+  "final_videos": [
+    "outputs/raw_scenes\\scene_01.mp4",
+    "outputs/raw_scenes\\scene_02.mp4",
+    "outputs/raw_scenes\\scene_03.mp4"
+  ],
+  "audio_tracks": [
+    "outputs/audio\\scene_01.wav",
+    "outputs/audio\\scene_02.wav",
+    "outputs/audio\\scene_03.wav"
+  ],
+  "scenes": [
+    {
+      "scene_id": 1,
+      "location": "Mystic Forest",
+      "status": "synced",
+      "audio_path": "outputs/audio\\scene_01.wav",
+      "video_path": "outputs/frames\\scene_01_raw.mp4",
+      "swapped_video_path": "outputs/frames\\scene_01_swapped.mp4",
+      "synced_video_path": "outputs/raw_scenes\\scene_01.mp4"
+    },
+    {
+      "scene_id": 2,
+      "location": "Abandoned Temple",
+      "status": "synced",
+      "audio_path": "outputs/audio\\scene_02.wav",
+      "video_path": "outputs/frames\\scene_02_raw.mp4",
+      "swapped_video_path": "outputs/frames\\scene_02_swapped.mp4",
+      "synced_video_path": "outputs/raw_scenes\\scene_02.mp4"
+    },
+    {
+      "scene_id": 3,
+      "location": "Cosmic Landscape",
+      "status": "synced",
+      "audio_path": "outputs/audio\\scene_03.wav",
+      "video_path": "outputs/frames\\scene_03_raw.mp4",
+      "swapped_video_path": "outputs/frames\\scene_03_swapped.mp4",
+      "synced_video_path": "outputs/raw_scenes\\scene_03.mp4"
+    }
+  ]
+}

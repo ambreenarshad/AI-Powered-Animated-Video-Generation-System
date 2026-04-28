@@ -1,0 +1,28 @@
+# requirements_phase2.txt
+# ── Phase 1 deps (already installed) ─────────────────────────────────────────
+langgraph>=0.2.0
+langchain-chroma>=0.1.0
+langchain-huggingface>=0.0.3
+groq>=0.5.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+numpy>=1.24.0
+
+# ── Phase 2 additional deps ───────────────────────────────────────────────────
+# Core audio/video processing
+#wave                        # stdlib — no install needed
+#struct                      # stdlib — no install needed
+
+# Optional: Real TTS (ElevenLabs)
+# elevenlabs>=1.0.0           # pip install elevenlabs
+
+# Optional: Real stock footage
+# pexels-api                  # set PEXELS_API_KEY in .env
+
+# Optional: Real face swap (heavy — GPU recommended)
+# insightface>=0.7.3          # pip install insightface onnxruntime-gpu
+# opencv-python>=4.8.0        # pip install opencv-python
+
+# Optional: Real lip sync
+# Wav2Lip — install from: https://github.com/Rudrabha/Wav2Lip
+# SadTalker — install from: https://github.com/OpenTalker/SadTalker

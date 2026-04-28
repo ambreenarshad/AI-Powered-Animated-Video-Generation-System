@@ -1,0 +1,16 @@
+[
+  {
+    "speaker": "Alex",
+    "line": "Now's our chance. The guard is making his rounds, we have 3 minutes to get to the server room.",
+    "start_sec": 0.0,
+    "end_sec": 6.912,
+    "line_wav": "outputs/audio\\scene_03_Alex_line_000.wav"
+  },
+  {
+    "speaker": "May",
+    "line": "Let's move, I've got the hacking tool ready. We need to disable the alarms before we can access the data.",
+    "start_sec": 6.912,
+    "end_sec": 14.256,
+    "line_wav": "outputs/audio\\scene_03_May_line_001.wav"
+  }
+]

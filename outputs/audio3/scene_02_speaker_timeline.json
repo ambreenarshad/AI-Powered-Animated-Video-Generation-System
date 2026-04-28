@@ -1,0 +1,18 @@
+[
+  {
+    "line_idx": 0,
+    "speaker": "May",
+    "line": "What's the plan if we get caught? We can't take on the whole security team.",
+    "start_sec": 0.0,
+    "end_sec": 5.448,
+    "duration": 5.448
+  },
+  {
+    "line_idx": 1,
+    "speaker": "Alex",
+    "line": "We won't get caught. We have the element of surprise, and I've got a contingency plan in place.",
+    "start_sec": 5.448,
+    "end_sec": 12.432,
+    "duration": 6.984
+  }
+]

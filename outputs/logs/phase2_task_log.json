@@ -1,0 +1,431 @@
+{
+  "phase": 2,
+  "timestamp": "2026-04-20T14:20:42",
+  "total_scenes": 3,
+  "task_graph": [
+    {
+      "scene_id": 1,
+      "location": "Mystic Forest",
+      "characters": [
+        "Amna",
+        "Ali",
+        "Sara",
+        "Dragon Arinthal",
+        "Zorvath"
+      ],
+      "dialogue": [
+        {
+          "speaker": "Amna",
+          "line": "I've never seen a dragon up close, it's breathtaking.",
+          "visual_cue": "Close-up of Amna's face, eyes wide with wonder"
+        },
+        {
+          "speaker": "Dragon Arinthal",
+          "line": "And I have never seen humans with such curiosity, it is refreshing.",
+          "visual_cue": "Low-angle shot of Dragon Arinthal, emphasizing its majesty"
+        }
+      ],
+      "char_meta": [
+        {
+          "name": "Amna",
+          "gender": "female",
+          "personality": [
+            "curious",
+            "open-minded",
+            "awed"
+          ],
+          "appearance": "young adult with a slender build, long dark hair, and expressive brown eyes, wearing a mix of leather and cloth attire suitable for exploration",
+          "style": "fantasy realism",
+          "image_path": "outputs/images\\Amna.png"
+        },
+        {
+          "name": "Ali",
+          "gender": "male",
+          "personality": [
+            "mysterious",
+            "adventurous",
+            " reserved"
+          ],
+          "appearance": "Ali has an athletic yet lean build, with short, dark hair and piercing brown eyes. They wear a mix of leather and chain armor, suitable for exploring mystical forests and abandoned temples.",
+          "style": "fantasy, with a touch of realism",
+          "image_path": "outputs/images\\Ali.png"
+        },
+        {
+          "name": "Sara",
+          "gender": "female",
+          "personality": [
+            "curious",
+            "cautious",
+            "inquisitive"
+          ],
+          "appearance": "Sara has long, dark hair and piercing green eyes. She is slender and athletic, with a quiet confidence in her demeanor. She wears a pair of worn leather boots, a flowing white tunic, and carries a short sword at her side.",
+          "style": "stylized fantasy",
+          "image_path": "outputs/images\\Sara.png"
+        },
+        {
+          "name": "Dragon Arinthal",
+          "gender": "female",
+          "personality": [
+            "curious",
+            "cautious",
+            "majestic"
+          ],
+          "appearance": "a large, serpentine dragon with iridescent scales that shimmer in the light, and piercing emerald green eyes that seem to see right through you",
+          "style": "stylized, with a touch of fantasy and wonder",
+          "image_path": "outputs/images\\Dragon_Arinthal.png"
+        },
+        {
+          "name": "Zorvath",
+          "gender": "female",
+          "personality": [
+            "Mysterious",
+            "Cautious",
+            "Intuitive"
+          ],
+          "appearance": "Tall, slender figure with long, flowing hair and piercing eyes, dressed in dark, mystical attire",
+          "style": "Stylized, with a touch of mysticism and otherworldliness",
+          "image_path": "outputs/images\\Zorvath.png"
+        }
+      ],
+      "audio_path": "outputs/audio\\scene_01.wav",
+      "video_path": "outputs/frames\\scene_01_raw.mp4",
+      "swapped_video_path": "outputs/frames\\scene_01_swapped.mp4",
+      "synced_video_path": "outputs/raw_scenes\\scene_01.mp4",
+      "status": "synced",
+      "error": null,
+      "character_images": {
+        "Amna": "outputs/images\\Amna.png",
+        "Ali": "outputs/images\\Ali.png",
+        "Sara": "outputs/images\\Sara.png",
+        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png",
+        "Zorvath": "outputs/images\\Zorvath.png"
+      },
+      "face_swap_dir": "outputs/frames"
+    },
+    {
+      "scene_id": 2,
+      "location": "Abandoned Temple",
+      "characters": [
+        "Ali",
+        "Sara",
+        "Zorvath",
+        "Dragon Arinthal"
+      ],
+      "dialogue": [
+        {
+          "speaker": "Ali",
+          "line": "This temple holds many secrets, we must be careful.",
+          "visual_cue": "Tense lighting, with shadows dancing across the walls"
+        },
+        {
+          "speaker": "Sara",
+          "line": "What kind of secrets?",
+          "visual_cue": "Over-the-shoulder shot of Zorvath, with an air of mystery"
+        }
+      ],
+      "char_meta": [
+        {
+          "name": "Ali",
+          "gender": "male",
+          "personality": [
+            "mysterious",
+            "adventurous",
+            " reserved"
+          ],
+          "appearance": "Ali has an athletic yet lean build, with short, dark hair and piercing brown eyes. They wear a mix of leather and chain armor, suitable for exploring mystical forests and abandoned temples.",
+          "style": "fantasy, with a touch of realism",
+          "image_path": "outputs/images\\Ali.png"
+        },
+        {
+          "name": "Sara",
+          "gender": "female",
+          "personality": [
+            "curious",
+            "cautious",
+            "inquisitive"
+          ],
+          "appearance": "Sara has long, dark hair and piercing green eyes. She is slender and athletic, with a quiet confidence in her demeanor. She wears a pair of worn leather boots, a flowing white tunic, and carries a short sword at her side.",
+          "style": "stylized fantasy",
+          "image_path": "outputs/images\\Sara.png"
+        },
+        {
+          "name": "Zorvath",
+          "gender": "female",
+          "personality": [
+            "Mysterious",
+            "Cautious",
+            "Intuitive"
+          ],
+          "appearance": "Tall, slender figure with long, flowing hair and piercing eyes, dressed in dark, mystical attire",
+          "style": "Stylized, with a touch of mysticism and otherworldliness",
+          "image_path": "outputs/images\\Zorvath.png"
+        },
+        {
+          "name": "Dragon Arinthal",
+          "gender": "female",
+          "personality": [
+            "curious",
+            "cautious",
+            "majestic"
+          ],
+          "appearance": "a large, serpentine dragon with iridescent scales that shimmer in the light, and piercing emerald green eyes that seem to see right through you",
+          "style": "stylized, with a touch of fantasy and wonder",
+          "image_path": "outputs/images\\Dragon_Arinthal.png"
+        }
+      ],
+      "audio_path": "outputs/audio\\scene_02.wav",
+      "video_path": "outputs/frames\\scene_02_raw.mp4",
+      "swapped_video_path": "outputs/frames\\scene_02_swapped.mp4",
+      "synced_video_path": "outputs/raw_scenes\\scene_02.mp4",
+      "status": "synced",
+      "error": null,
+      "character_images": {
+        "Ali": "outputs/images\\Ali.png",
+        "Sara": "outputs/images\\Sara.png",
+        "Zorvath": "outputs/images\\Zorvath.png",
+        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png"
+      },
+      "face_swap_dir": "outputs/frames"
+    },
+    {
+      "scene_id": 3,
+      "location": "Cosmic Landscape",
+      "characters": [
+        "Amna",
+        "Sara",
+        "Dragon Arinthal",
+        "Zorvath"
+      ],
+      "dialogue": [
+        {
+          "speaker": "Dragon Arinthal",
+          "line": "The universe is full of wonder, but also danger, we must be cautious.",
+          "visual_cue": "Wide shot of the cosmic landscape, with stars and planets in the distance"
+        },
+        {
+          "speaker": "Zorvath",
+          "line": "I sense a disturbance in the galaxy, we should investigate.",
+          "visual_cue": "Point-of-view shot from Zorvath's perspective, with a glowing aura"
+        }
+      ],
+      "char_meta": [
+        {
+          "name": "Amna",
+          "gender": "female",
+          "personality": [
+            "curious",
+            "open-minded",
+            "awed"
+          ],
+          "appearance": "young adult with a slender build, long dark hair, and expressive brown eyes, wearing a mix of leather and cloth attire suitable for exploration",
+          "style": "fantasy realism",
+          "image_path": "outputs/images\\Amna.png"
+        },
+        {
+          "name": "Sara",
+          "gender": "female",
+          "personality": [
+            "curious",
+            "cautious",
+            "inquisitive"
+          ],
+          "appearance": "Sara has long, dark hair and piercing green eyes. She is slender and athletic, with a quiet confidence in her demeanor. She wears a pair of worn leather boots, a flowing white tunic, and carries a short sword at her side.",
+          "style": "stylized fantasy",
+          "image_path": "outputs/images\\Sara.png"
+        },
+        {
+          "name": "Dragon Arinthal",
+          "gender": "female",
+          "personality": [
+            "curious",
+            "cautious",
+            "majestic"
+          ],
+          "appearance": "a large, serpentine dragon with iridescent scales that shimmer in the light, and piercing emerald green eyes that seem to see right through you",
+          "style": "stylized, with a touch of fantasy and wonder",
+          "image_path": "outputs/images\\Dragon_Arinthal.png"
+        },
+        {
+          "name": "Zorvath",
+          "gender": "female",
+          "personality": [
+            "Mysterious",
+            "Cautious",
+            "Intuitive"
+          ],
+          "appearance": "Tall, slender figure with long, flowing hair and piercing eyes, dressed in dark, mystical attire",
+          "style": "Stylized, with a touch of mysticism and otherworldliness",
+          "image_path": "outputs/images\\Zorvath.png"
+        }
+      ],
+      "audio_path": "outputs/audio\\scene_03.wav",
+      "video_path": "outputs/frames\\scene_03_raw.mp4",
+      "swapped_video_path": "outputs/frames\\scene_03_swapped.mp4",
+      "synced_video_path": "outputs/raw_scenes\\scene_03.mp4",
+      "status": "synced",
+      "error": null,
+      "character_images": {
+        "Amna": "outputs/images\\Amna.png",
+        "Sara": "outputs/images\\Sara.png",
+        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png",
+        "Zorvath": "outputs/images\\Zorvath.png"
+      },
+      "face_swap_dir": "outputs/frames"
+    }
+  ],
+  "audio_results": [
+    {
+      "scene_id": 1,
+      "audio_path": "outputs/audio\\scene_01.wav",
+      "duration": 8.544,
+      "method": "edge-tts",
+      "line_wavs": [
+        "outputs/audio\\scene_01_Amna_line_000.wav",
+        "outputs/audio\\scene_01_Dragon_Arinthal_line_001.wav"
+      ],
+      "status": "done"
+    },
+    {
+      "scene_id": 2,
+      "audio_path": "outputs/audio\\scene_02.wav",
+      "duration": 6.384,
+      "method": "edge-tts",
+      "line_wavs": [
+        "outputs/audio\\scene_02_Ali_line_000.wav",
+        "outputs/audio\\scene_02_Sara_line_001.wav"
+      ],
+      "status": "done"
+    },
+    {
+      "scene_id": 3,
+      "audio_path": "outputs/audio\\scene_03.wav",
+      "duration": 9.24,
+      "method": "edge-tts",
+      "line_wavs": [
+        "outputs/audio\\scene_03_Dragon_Arinthal_line_000.wav",
+        "outputs/audio\\scene_03_Zorvath_line_001.wav"
+      ],
+      "status": "done"
+    }
+  ],
+  "video_results": [
+    {
+      "scene_id": 1,
+      "video_path": "outputs/frames\\scene_01_raw.mp4",
+      "frame_dir": "outputs/frames\\scene_01_frames",
+      "num_frames": 0,
+      "method": "stock",
+      "status": "done"
+    },
+    {
+      "scene_id": 2,
+      "video_path": "outputs/frames\\scene_02_raw.mp4",
+      "frame_dir": "outputs/frames\\scene_02_frames",
+      "num_frames": 0,
+      "method": "stock",
+      "status": "done"
+    },
+    {
+      "scene_id": 3,
+      "video_path": "outputs/frames\\scene_03_raw.mp4",
+      "frame_dir": "outputs/frames\\scene_03_frames",
+      "num_frames": 0,
+      "method": "stock",
+      "status": "done"
+    }
+  ],
+  "swapped_results": [
+    {
+      "scene_id": 1,
+      "swapped_video_path": "outputs/frames\\scene_01_swapped.mp4",
+      "validated_chars": [
+        "Amna",
+        "Ali",
+        "Sara",
+        "Dragon Arinthal",
+        "Zorvath"
+      ],
+      "face_swap_dir": "outputs/frames",
+      "character_images": {
+        "Amna": "outputs/images\\Amna.png",
+        "Ali": "outputs/images\\Ali.png",
+        "Sara": "outputs/images\\Sara.png",
+        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png",
+        "Zorvath": "outputs/images\\Zorvath.png"
+      },
+      "status": "done"
+    },
+    {
+      "scene_id": 2,
+      "swapped_video_path": "outputs/frames\\scene_02_swapped.mp4",
+      "validated_chars": [
+        "Ali",
+        "Sara",
+        "Zorvath",
+        "Dragon Arinthal"
+      ],
+      "face_swap_dir": "outputs/frames",
+      "character_images": {
+        "Ali": "outputs/images\\Ali.png",
+        "Sara": "outputs/images\\Sara.png",
+        "Zorvath": "outputs/images\\Zorvath.png",
+        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png"
+      },
+      "status": "done"
+    },
+    {
+      "scene_id": 3,
+      "swapped_video_path": "outputs/frames\\scene_03_swapped.mp4",
+      "validated_chars": [
+        "Amna",
+        "Sara",
+        "Dragon Arinthal",
+        "Zorvath"
+      ],
+      "face_swap_dir": "outputs/frames",
+      "character_images": {
+        "Amna": "outputs/images\\Amna.png",
+        "Sara": "outputs/images\\Sara.png",
+        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png",
+        "Zorvath": "outputs/images\\Zorvath.png"
+      },
+      "status": "done"
+    }
+  ],
+  "synced_results": [
+    {
+      "scene_id": 1,
+      "synced_video_path": "outputs/raw_scenes\\scene_01.mp4",
+      "audio_duration": 8.544,
+      "total_frames": 215,
+      "alignment_log": "outputs/raw_scenes\\scene_01_alignment.json",
+      "status": "done"
+    },
+    {
+      "scene_id": 2,
+      "synced_video_path": "outputs/raw_scenes\\scene_02.mp4",
+      "audio_duration": 6.384,
+      "total_frames": 160,
+      "alignment_log": "outputs/raw_scenes\\scene_02_alignment.json",
+      "status": "done"
+    },
+    {
+      "scene_id": 3,
+      "synced_video_path": "outputs/raw_scenes\\scene_03.mp4",
+      "audio_duration": 9.24,
+      "total_frames": 232,
+      "alignment_log": "outputs/raw_scenes\\scene_03_alignment.json",
+      "status": "done"
+    }
+  ],
+  "final_videos": [
+    "outputs/raw_scenes\\scene_01.mp4",
+    "outputs/raw_scenes\\scene_02.mp4",
+    "outputs/raw_scenes\\scene_03.mp4"
+  ],
+  "audio_tracks": [
+    "outputs/audio\\scene_01.wav",
+    "outputs/audio\\scene_02.wav",
+    "outputs/audio\\scene_03.wav"
+  ]
+}

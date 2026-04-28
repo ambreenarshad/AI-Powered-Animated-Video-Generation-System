@@ -1,0 +1,87 @@
+{
+  "scene_id": 3,
+  "audio_path": "outputs/audio\\scene_03.wav",
+  "video_path": "outputs/frames\\scene_03_swapped.mp4",
+  "audio_duration": 14.256,
+  "fps": 25.0,
+  "total_frames": 356,
+  "sample_rate": 24000,
+  "mux_status": "synced_with_audio",
+  "alignment_sample": [
+    {
+      "frame": 0,
+      "audio_ms": 0.0,
+      "rms": 0.0
+    },
+    {
+      "frame": 1,
+      "audio_ms": 40.0,
+      "rms": 0.0
+    },
+    {
+      "frame": 2,
+      "audio_ms": 80.0,
+      "rms": 0.0
+    },
+    {
+      "frame": 3,
+      "audio_ms": 120.0,
+      "rms": 0.0
+    },
+    {
+      "frame": 4,
+      "audio_ms": 160.0,
+      "rms": 0.0001
+    },
+    {
+      "frame": 5,
+      "audio_ms": 200.0,
+      "rms": 0.0724
+    },
+    {
+      "frame": 6,
+      "audio_ms": 240.0,
+      "rms": 0.1677
+    },
+    {
+      "frame": 7,
+      "audio_ms": 280.0,
+      "rms": 0.198
+    },
+    {
+      "frame": 8,
+      "audio_ms": 320.0,
+      "rms": 0.2019
+    },
+    {
+      "frame": 9,
+      "audio_ms": 360.0,
+      "rms": 0.1829
+    },
+    {
+      "frame": 10,
+      "audio_ms": 400.0,
+      "rms": 0.1638
+    },
+    {
+      "frame": 11,
+      "audio_ms": 440.0,
+      "rms": 0.1432
+    },
+    {
+      "frame": 12,
+      "audio_ms": 480.0,
+      "rms": 0.0653
+    },
+    {
+      "frame": 13,
+      "audio_ms": 520.0,
+      "rms": 0.0401
+    },
+    {
+      "frame": 14,
+      "audio_ms": 560.0,
+      "rms": 0.1498
+    }
+  ]
+}
