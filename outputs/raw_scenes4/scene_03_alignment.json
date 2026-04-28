@@ -1,0 +1,12 @@
+{
+  "scene_id": 3,
+  "audio_path": "outputs/audio\\scene_03.wav",
+  "video_path": "outputs/frames\\scene_03_swapped.mp4",
+  "audio_duration": 14.256,
+  "fps": 25.0,
+  "total_frames": 356,
+  "sample_rate": 24000,
+  "mux_status": "synced_with_audio",
+  "characters": [],
+  "line_count": 0
+}

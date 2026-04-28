@@ -1,0 +1,25 @@
+{
+  "scene_id": 2,
+  "total_duration": 12.432,
+  "dialogue_lines": [
+    {
+      "line_index": 0,
+      "speaker": "May",
+      "text": "What's the plan if we get caught? We can't take on the whole security team.",
+      "audio_path": "outputs/audio\\scene_02_May_line_000.wav",
+      "duration": 5.448
+    },
+    {
+      "line_index": 1,
+      "speaker": "Alex",
+      "text": "We won't get caught. We have the element of surprise, and I've got a contingency plan in place.",
+      "audio_path": "outputs/audio\\scene_02_Alex_line_001.wav",
+      "duration": 6.984
+    }
+  ],
+  "characters": [
+    "May",
+    "Alex"
+  ],
+  "method": "edge-tts"
+}

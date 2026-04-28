@@ -1,0 +1,55 @@
+{
+  "scenes": [
+    {
+      "scene_id": 1,
+      "location": "Floating Volcanic Islands Above a Neon Planet",
+      "characters": ["Dragon_Arinthal", "Zorvath"],
+      "dialogue": [
+        {
+          "speaker": "Dragon_Arinthal",
+          "line": "You trespass in my skies, creature of the void. State your purpose.",
+          "visual_cue": "Wide cinematic shot of a massive dragon perched on a lava-cracked floating island, glowing wings spread against a cosmic sky"
+        },
+        {
+          "speaker": "Zorvath",
+          "line": "I come not as an enemy, but as a seeker. Your world holds the energy core my species desperately needs.",
+          "visual_cue": "Close-up of Zorvath, a bioluminescent alien with shifting patterns across its skin"
+        }
+      ]
+    },
+    {
+      "scene_id": 2,
+      "location": "Ancient Crystal Cavern Beneath the Islands",
+      "characters": ["Dragon_Arinthal", "Zorvath"],
+      "dialogue": [
+        {
+          "speaker": "Zorvath",
+          "line": "These crystals… they resonate with unimaginable power.",
+          "visual_cue": "Tracking shot through glowing crystals reflecting vibrant colors across the cavern walls"
+        },
+        {
+          "speaker": "Dragon_Arinthal",
+          "line": "They are the heart of this world. Remove them, and everything above will fall.",
+          "visual_cue": "Low-angle shot of Dragon_Arinthal looming protectively over the crystals"
+        }
+      ]
+    },
+    {
+      "scene_id": 3,
+      "location": "Cliff Edge Overlooking a Cosmic Storm",
+      "characters": ["Dragon_Arinthal", "Zorvath"],
+      "dialogue": [
+        {
+          "speaker": "Zorvath",
+          "line": "Then help me find another way. I will not doom your world… but I cannot let mine perish either.",
+          "visual_cue": "Medium shot of Zorvath extending a glowing limb, storm lighting flashing in the background"
+        },
+        {
+          "speaker": "Dragon_Arinthal",
+          "line": "Perhaps there is a path neither of us can see alone.",
+          "visual_cue": "Epic wide shot of both characters silhouetted against a swirling cosmic storm"
+        }
+      ]
+    }
+  ]
+}

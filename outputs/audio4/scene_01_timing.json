@@ -1,0 +1,16 @@
+[
+  {
+    "speaker": "Alex",
+    "line": "We need to get in and out, no more than 5 minutes. The security system resets every 6 minutes.",
+    "start_sec": 0.0,
+    "end_sec": 7.248,
+    "line_wav": "outputs/audio\\scene_01_Alex_line_000.wav"
+  },
+  {
+    "speaker": "May",
+    "line": "I've got the ventilation route mapped out. We can drop in from the east side, avoid the main cameras.",
+    "start_sec": 7.248,
+    "end_sec": 14.376,
+    "line_wav": "outputs/audio\\scene_01_May_line_001.wav"
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "scene_id": 3,
+  "total_duration": 14.256,
+  "dialogue_lines": [
+    {
+      "line_index": 0,
+      "speaker": "Alex",
+      "text": "Now's our chance. The guard is making his rounds, we have 3 minutes to get to the server room.",
+      "audio_path": "outputs/audio\\scene_03_Alex_line_000.wav",
+      "duration": 6.912
+    },
+    {
+      "line_index": 1,
+      "speaker": "May",
+      "text": "Let's move, I've got the hacking tool ready. We need to disable the alarms before we can access the data.",
+      "audio_path": "outputs/audio\\scene_03_May_line_001.wav",
+      "duration": 7.344
+    }
+  ],
+  "characters": [
+    "Alex",
+    "May"
+  ],
+  "method": "edge-tts"
+}

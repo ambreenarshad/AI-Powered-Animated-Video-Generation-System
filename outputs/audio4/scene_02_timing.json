@@ -1,0 +1,16 @@
+[
+  {
+    "speaker": "May",
+    "line": "What's the plan if we get caught? We can't take on the whole security team.",
+    "start_sec": 0.0,
+    "end_sec": 5.448,
+    "line_wav": "outputs/audio\\scene_02_May_line_000.wav"
+  },
+  {
+    "speaker": "Alex",
+    "line": "We won't get caught. We have the element of surprise, and I've got a contingency plan in place.",
+    "start_sec": 5.448,
+    "end_sec": 12.432,
+    "line_wav": "outputs/audio\\scene_02_Alex_line_001.wav"
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Alex",
+    "personality": [
+      "determined",
+      "resourceful",
+      "confident"
+    ],
+    "appearance": "tall, lean, short dark hair, piercing brown eyes, sharp jawline, athletic build, wearing a black leather jacket and jeans",
+    "style": "stylized, noir-inspired with a touch of realism"
+  },
+  {
+    "name": "May",
+    "personality": "resourceful, cautious, determined",
+    "appearance": "short, dark hair, piercing green eyes, athletic build, wearing a black leather jacket and ripped jeans",
+    "style": "stylized, gritty noir"
+  }
+]

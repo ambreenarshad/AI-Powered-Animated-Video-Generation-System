@@ -1,0 +1,25 @@
+{
+  "scene_id": 1,
+  "total_duration": 14.376,
+  "dialogue_lines": [
+    {
+      "line_index": 0,
+      "speaker": "Alex",
+      "text": "We need to get in and out, no more than 5 minutes. The security system resets every 6 minutes.",
+      "audio_path": "outputs/audio\\scene_01_Alex_line_000.wav",
+      "duration": 7.248
+    },
+    {
+      "line_index": 1,
+      "speaker": "May",
+      "text": "I've got the ventilation route mapped out. We can drop in from the east side, avoid the main cameras.",
+      "audio_path": "outputs/audio\\scene_01_May_line_001.wav",
+      "duration": 7.128
+    }
+  ],
+  "characters": [
+    "Alex",
+    "May"
+  ],
+  "method": "edge-tts"
+}
