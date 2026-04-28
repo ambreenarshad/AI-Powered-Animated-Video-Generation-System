@@ -125,7 +125,7 @@ class App(tk.Tk):
         hdr.pack(fill="x", padx=30)
         tk.Label(hdr, text="◈  PROJECT MONTAGE", font=self.f_title,
                  fg=GOLD, bg=BG).pack(side="left")
-        tk.Label(hdr, text="  autonomous story & image generation",
+        tk.Label(hdr, text="  autonomous story generation",
                  font=self.f_sub, fg=MUTED, bg=BG).pack(side="left", pady=6)
         tk.Frame(self, bg=GOLD, height=1).pack(fill="x", padx=30)
 
@@ -281,7 +281,7 @@ class App(tk.Tk):
         pf.grid(row=0, column=0, sticky="ew", pady=(18, 10))
 
         self.stages = ["Scriptwriter", "Validator", "HITL Review",
-                       "Character Designer", "Image Synthesizer"]
+                       "Character Designer"]
         self.stage_labels = {}
         for s in self.stages:
             row = tk.Frame(pf, bg=BG2)
@@ -307,7 +307,7 @@ class App(tk.Tk):
                       highlightbackground=BORDER, highlightthickness=1)
         of.grid(row=4, column=0, sticky="ew")
         self.out_labels = {}
-        for name in ["scene_manifest.json", "character_db.json", "images/"]:
+        for name in ["scene_manifest.json", "character_db.json"]:
             r = tk.Frame(of, bg=BG2)
             r.pack(fill="x", pady=2)
             tk.Label(r, text="▸", fg=MUTED, bg=BG2, font=self.f_body).pack(side="left")
@@ -327,7 +327,7 @@ class App(tk.Tk):
             while True:
                 msg = self._log_queue.get_nowait()
                 tag = ("green" if "✅" in msg else
-                       "gold"  if any(x in msg for x in ["[MCP]","[Script","[Charact","[Image","[Valida","[HITL]","[Pipe","[Out"]) else
+                       "gold"  if any(x in msg for x in ["[MCP]","[Script","[Charact","[Valida","[HITL]","[Pipe","[Out"]) else
                        "dim"   if msg.startswith("  →") else None)
                 self._log(msg.rstrip(), tag)
         except queue.Empty:
@@ -422,7 +422,6 @@ class App(tk.Tk):
                 "user_input": user_input,
                 "script": script,
                 "characters": [],
-                "images": [],
                 "status": "processing",
                 "hitl_feedback": ""
             }
@@ -435,7 +434,6 @@ class App(tk.Tk):
 
             self.after(0, lambda: self._mark_output("scene_manifest.json"))
             self.after(0, lambda: self._mark_output("character_db.json"))
-            self.after(0, lambda: self._mark_output("images/"))
             self.after(0, self._on_success)
 
         except Exception as e:
@@ -446,13 +444,11 @@ class App(tk.Tk):
         import agents.validator   as vl
         import agents.hitl        as hl
         import agents.character   as ch
-        import agents.image       as im
 
         orig_sw = sw.scriptwriter_agent
         orig_vl = vl.validator_agent
         orig_hl = hl.hitl_agent
         orig_ch = ch.character_agent
-        orig_im = im.image_agent
         app = self
 
         def wrap(orig, stage):
@@ -493,7 +489,6 @@ class App(tk.Tk):
         vl.validator_agent    = wrap(orig_vl, "Validator")
         hl.hitl_agent         = gui_hitl
         ch.character_agent    = wrap(orig_ch, "Character Designer")
-        im.image_agent        = wrap(orig_im, "Image Synthesizer")
 
         # ── Re-patch every module that may have already imported these
         #    by name (e.g. `from agents.character import character_agent`).
@@ -503,8 +498,7 @@ class App(tk.Tk):
             ("agents.scriptwriter", "scriptwriter_agent", sw.scriptwriter_agent),
             ("agents.validator",    "validator_agent",    vl.validator_agent),
             ("agents.hitl",         "hitl_agent",         hl.hitl_agent),
-            ("agents.character",    "character_agent",    ch.character_agent),
-            ("agents.image",        "image_agent",        im.image_agent),
+            ("agents.character",    "character_agent",    ch.character_agent)
         ]:
             if _mod_name in _sys.modules:
                 setattr(_sys.modules[_mod_name], _attr, _val)
@@ -519,7 +513,6 @@ class App(tk.Tk):
         self._log("✅  Phase 1 Completed Successfully!", "green")
         self._log("  outputs/scene_manifest.json", "green")
         self._log("  outputs/character_db.json",   "green")
-        self._log("  outputs/images/",             "green")
         self._log("═" * 48, "gold")
 
     def _on_error(self, msg):

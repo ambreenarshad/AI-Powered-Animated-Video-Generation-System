@@ -5,7 +5,6 @@ from state import GraphState
 import agents.scriptwriter as sw
 import agents.validator    as vl
 import agents.character    as ch
-import agents.image        as im
 import agents.hitl         as hl
 
 
@@ -24,7 +23,6 @@ def build_graph():
     graph.add_node("validator",    lambda s: vl.validator_agent(s))
     graph.add_node("hitl",         lambda s: hl.hitl_agent(s))
     graph.add_node("character",    lambda s: ch.character_agent(s))
-    graph.add_node("image",        lambda s: im.image_agent(s))
 
     graph.set_entry_point("scriptwriter")
 
@@ -36,7 +34,6 @@ def build_graph():
         "character":    "character",
     })
 
-    graph.add_edge("character", "image")
-    graph.add_edge("image",     END)
+    graph.add_edge("character",     END)
 
     return graph.compile()

@@ -2,68 +2,79 @@
   "scenes": [
     {
       "scene_id": 1,
-      "location": "Mystic Forest",
+      "location": "Abandoned Warehouse",
       "characters": [
-        "Amna",
-        "Ali",
-        "Sara",
-        "Dragon Arinthal",
-        "Zorvath"
+        "Kashif Ahmed",
+        "Sara Khan",
+        "Ali Hassan"
       ],
       "dialogue": [
         {
-          "speaker": "Amna",
-          "line": "I've never seen a dragon up close, it's breathtaking.",
-          "visual_cue": "Close-up of Amna's face, eyes wide with wonder"
+          "speaker": "Kashif Ahmed",
+          "line": "You're both to blame for this mess! We should have acted sooner!",
+          "visual_cue": "Close-up of Kashif Ahmed's angry face, with a fierce tone"
         },
         {
-          "speaker": "Dragon Arinthal",
-          "line": "And I have never seen humans with such curiosity, it is refreshing.",
-          "visual_cue": "Low-angle shot of Dragon Arinthal, emphasizing its majesty"
+          "speaker": "Sara Khan",
+          "line": "How dare you! We did everything we could, but you were the one who hesitated!",
+          "visual_cue": "Medium shot of Sara Khan, her eyes blazing with anger, her fists clenched"
+        },
+        {
+          "speaker": "Ali Hassan",
+          "line": "Enough! We're not going to solve anything by fighting each other. We need to work together!",
+          "visual_cue": "Low-angle shot of Ali Hassan, his voice firm, but his eyes filled with a deep concern"
         }
       ]
     },
     {
       "scene_id": 2,
-      "location": "Abandoned Temple",
+      "location": "Abandoned Warehouse",
       "characters": [
-        "Ali",
-        "Sara",
-        "Zorvath",
-        "Dragon Arinthal"
+        "Kashif Ahmed",
+        "Sara Khan",
+        "Ali Hassan"
       ],
       "dialogue": [
         {
-          "speaker": "Ali",
-          "line": "This temple holds many secrets, we must be careful.",
-          "visual_cue": "Tense lighting, with shadows dancing across the walls"
+          "speaker": "Kashif Ahmed",
+          "line": "You're just trying to cover your own tracks, Ali! You're not taking responsibility for your actions!",
+          "visual_cue": "Over-the-shoulder shot of Kashif Ahmed, his voice raised in accusation"
         },
         {
-          "speaker": "Sara",
-          "line": "What kind of secrets?",
-          "visual_cue": "Over-the-shoulder shot of Zorvath, with an air of mystery"
+          "speaker": "Ali Hassan",
+          "line": "That's not true, Kashif! I'm trying to find a way out of this situation, but you're not listening!",
+          "visual_cue": "Close-up of Ali Hassan's frustrated face, his eyes locked on Kashif Ahmed"
+        },
+        {
+          "speaker": "Sara Khan",
+          "line": "Stop it, both of you! This isn't getting us anywhere!",
+          "visual_cue": "Wide shot of the three characters, the tension between them palpable"
         }
       ]
     },
     {
       "scene_id": 3,
-      "location": "Cosmic Landscape",
+      "location": "Abandoned Warehouse",
       "characters": [
-        "Amna",
-        "Sara",
-        "Dragon Arinthal",
-        "Zorvath"
+        "Kashif Ahmed",
+        "Sara Khan",
+        "Ali Hassan"
       ],
       "dialogue": [
         {
-          "speaker": "Dragon Arinthal",
-          "line": "The universe is full of wonder, but also danger, we must be cautious.",
-          "visual_cue": "Wide shot of the cosmic landscape, with stars and planets in the distance"
+          "speaker": "Ali Hassan",
+          "line": "I've had enough of this! We're never going to agree on anything!",
+          "visual_cue": "Low-angle shot of Ali Hassan, his voice firm, as he turns to leave"
         },
         {
-          "speaker": "Zorvath",
-          "line": "I sense a disturbance in the galaxy, we should investigate.",
-          "visual_cue": "Point-of-view shot from Zorvath's perspective, with a glowing aura"
+          "speaker": "Sara Khan",
+          "line": "Wait, Ali! Don't go! We need to talk this through!",
+          "visual_cue": "Medium shot of Sara Khan, her eyes filled with a desperate plea"
+        },
+        {
+          "speaker": "Kashif Ahmed",
+          "line": "Let him go, Sara. We're better off without him.",
+          "visual_cue": "Close-up of Kashif Ahmed's cold, hard face, his eyes filled with a deep-seated anger"
         }
       ]
     }

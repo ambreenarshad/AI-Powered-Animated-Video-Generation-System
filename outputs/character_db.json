@@ -1,57 +1,46 @@
 [
   {
-    "name": "Amna",
-    "gender": "female",
-    "personality": [
-      "curious",
-      "open-minded",
-      "awed"
-    ],
-    "appearance": "young adult with a slender build, long dark hair, and expressive brown eyes, wearing a mix of leather and cloth attire suitable for exploration",
-    "style": "fantasy realism"
-  },
-  {
-    "name": "Ali",
+    "name": "Kashif Ahmed",
     "gender": "male",
     "personality": [
-      "mysterious",
-      "adventurous",
-      " reserved"
+      "Angry",
+      "Accusatory",
+      "Cold"
     ],
-    "appearance": "Ali has an athletic yet lean build, with short, dark hair and piercing brown eyes. They wear a mix of leather and chain armor, suitable for exploring mystical forests and abandoned temples.",
-    "style": "fantasy, with a touch of realism"
+    "appearance": {
+      "age": "late 20s to early 30s",
+      "face": "chiseled features, sharp jawline, piercing eyes",
+      "hair": "dark, short, and neatly trimmed",
+      "build": "lean, athletic"
+    },
+    "style": "realistic"
   },
   {
-    "name": "Sara",
+    "name": "Sara Khan",
     "gender": "female",
     "personality": [
-      "curious",
-      "cautious",
-      "inquisitive"
+      "defiant",
+      "emotional",
+      "determined"
     ],
-    "appearance": "Sara has long, dark hair and piercing green eyes. She is slender and athletic, with a quiet confidence in her demeanor. She wears a pair of worn leather boots, a flowing white tunic, and carries a short sword at her side.",
-    "style": "stylized fantasy"
+    "appearance": "South Asian woman in her mid-30s, with long dark hair and expressive brown eyes, wearing a mix of modern and traditional clothing",
+    "style": "realistic"
   },
   {
-    "name": "Dragon Arinthal",
-    "gender": "female",
+    "name": "Ali Hassan",
+    "gender": "male",
     "personality": [
-      "curious",
-      "cautious",
-      "majestic"
+      "calm",
+      "assertive",
+      "frustrated"
     ],
-    "appearance": "a large, serpentine dragon with iridescent scales that shimmer in the light, and piercing emerald green eyes that seem to see right through you",
-    "style": "stylized, with a touch of fantasy and wonder"
-  },
-  {
-    "name": "Zorvath",
-    "gender": "female",
-    "personality": [
-      "Mysterious",
-      "Cautious",
-      "Intuitive"
-    ],
-    "appearance": "Tall, slender figure with long, flowing hair and piercing eyes, dressed in dark, mystical attire",
-    "style": "Stylized, with a touch of mysticism and otherworldliness"
+    "appearance": {
+      "age": "late 20s to early 30s",
+      "height": "average to tall",
+      "facial_features": "strong jawline, expressive eyes",
+      "hair": "dark, short to medium length",
+      "attire": "casual, practical clothing"
+    },
+    "style": "realistic"
   }
 ]
