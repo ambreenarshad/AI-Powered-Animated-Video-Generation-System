@@ -1,8 +1,7 @@
-# main2.py
 """
 PROJECT MONTAGE — Phase 2
 GUI Entry Point (Tkinter)
-The Studio Floor: Video & Audio Synthesis Layer
+The Studio Floor: Audio Synthesis Layer
 Cinematic noir aesthetic matching Phase 1.
 """
 
@@ -45,8 +44,8 @@ class App2(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("PROJECT MONTAGE  ·  Phase 2  —  The Studio Floor")
-        self.geometry("1200x860")
-        self.minsize(1000, 720)
+        self.geometry("1100x780")
+        self.minsize(900, 640)
         self.configure(bg=BG)
 
         self._log_queue = queue.Queue()
@@ -76,7 +75,7 @@ class App2(tk.Tk):
         hdr.pack(fill="x", padx=30)
         tk.Label(hdr, text="◈  PROJECT MONTAGE  ·  PHASE 2",
                  font=self.f_title, fg=GOLD, bg=BG).pack(side="left")
-        tk.Label(hdr, text="  the studio floor — video & audio synthesis",
+        tk.Label(hdr, text="  the studio floor — audio synthesis",
                  font=self.f_sub, fg=MUTED, bg=BG).pack(side="left", pady=4)
         tk.Frame(self, bg=GOLD, height=1).pack(fill="x", padx=30)
 
@@ -115,7 +114,6 @@ class App2(tk.Tk):
         paths = [
             ("scene_manifest.json", "outputs/scene_manifest.json"),
             ("character_db.json",   "outputs/character_db.json"),
-            ("images/ directory",   "outputs/images"),
         ]
         self._path_vars = {}
         for i, (label, default) in enumerate(paths):
@@ -147,10 +145,7 @@ class App2(tk.Tk):
 
         self.stages = [
             "Scene Parser",
-            "Voice Synthesis  (audio branch)",
-            "Video Generation (video branch)",
-            "Face Swap",
-            "Lip Sync  [fusion layer]",
+            "Voice Synthesis",
         ]
         self.stage_labels = {}
         for s in self.stages:
@@ -169,11 +164,10 @@ class App2(tk.Tk):
         self._lbl(of, "OUTPUT FILES").pack(anchor="w", pady=(0, 8))
 
         self.out_files = [
-            "outputs/raw_scenes/scene_*.mp4",
             "outputs/audio/scene_*.wav",
+            "outputs/timing_manifest.json",
             "outputs/logs/phase2_task_log.json",
             "outputs/phase2_manifest.json",
-            "outputs/frames/  (frame sequences)",
         ]
         self.out_labels = {}
         for name in self.out_files:
@@ -210,10 +204,7 @@ class App2(tk.Tk):
 
     # ── Helpers ────────────────────────────────────────────────────────────────
     def _browse(self, label, var):
-        if "directory" in label.lower() or "images" in label.lower():
-            path = filedialog.askdirectory()
-        else:
-            path = filedialog.askopenfilename(filetypes=[("JSON", "*.json"), ("All", "*.*")])
+        path = filedialog.askopenfilename(filetypes=[("JSON", "*.json"), ("All", "*.*")])
         if path:
             var.set(path)
 
@@ -229,8 +220,8 @@ class App2(tk.Tk):
                 msg = self._log_queue.get_nowait()
                 tag = ("green" if "✅" in msg else
                        "red"   if "❌" in msg else
-                       "gold"  if any(x in msg for x in ["[MCP", "[Scene", "[Voice", "[Video",
-                                                           "[Face", "[Lip",  "[Output", "[Phase"]) else
+                       "gold"  if any(x in msg for x in ["[MCP", "[Scene", "[Voice",
+                                                           "[Output", "[Phase"]) else
                        "blue"  if "parallel" in msg.lower() or "branch" in msg.lower() else
                        "dim"   if msg.startswith("  →") or msg.startswith("  ✅") else None)
                 self._log(msg.rstrip(), tag)
@@ -239,7 +230,6 @@ class App2(tk.Tk):
         self.after(100, self._poll_log)
 
     def _set_stage(self, name, state):
-        # Support partial name matching for long stage names
         key = next((k for k in self.stage_labels if k.startswith(name) or name in k), None)
         if not key:
             return
@@ -264,10 +254,7 @@ class App2(tk.Tk):
         for col, width, text in [
             (0, 8,  "SCENE"),
             (1, 22, "LOCATION"),
-            (2, 10, "AUDIO"),
-            (3, 10, "VIDEO"),
-            (4, 10, "SWAP"),
-            (5, 10, "SYNC"),
+            (2, 12, "AUDIO"),
         ]:
             tk.Label(header, text=text, font=self.f_small, fg=GOLD,
                      bg=BG2, width=width, anchor="w").grid(row=0, column=col, padx=2)
@@ -277,17 +264,17 @@ class App2(tk.Tk):
             row  = tk.Frame(self.scene_frame, bg=BG3)
             row.pack(fill="x", pady=1)
             loc  = task["location"][:20] + "…" if len(task["location"]) > 20 else task["location"]
-            cols = [str(sid), loc, "⏳", "⏳", "⏳", "⏳"]
+            cols = [str(sid), loc, "⏳"]
             lbls = []
-            for c, (width, text) in enumerate(zip([8, 22, 10, 10, 10, 10], cols)):
+            for c, (width, text) in enumerate(zip([8, 22, 12], cols)):
                 lbl = tk.Label(row, text=text, font=self.f_small, fg=MUTED,
                                bg=BG3, width=width, anchor="w")
                 lbl.grid(row=0, column=c, padx=2, pady=2)
                 lbls.append(lbl)
-            self.scene_rows[sid] = lbls  # [scene_id_lbl, loc_lbl, audio, video, swap, sync]
+            self.scene_rows[sid] = lbls  # [scene_id_lbl, loc_lbl, audio]
 
     def _update_scene_cell(self, scene_id: int, col_idx: int, text: str, color: str):
-        """col_idx: 2=audio, 3=video, 4=swap, 5=sync"""
+        """col_idx: 2=audio"""
         if scene_id in self.scene_rows:
             self.scene_rows[scene_id][col_idx].config(text=text, fg=color)
 
@@ -309,7 +296,6 @@ class App2(tk.Tk):
         config = {
             "scene_manifest_path": self._path_vars["scene_manifest.json"].get(),
             "character_db_path":   self._path_vars["character_db.json"].get(),
-            "images_dir":          self._path_vars["images/ directory"].get(),
         }
         threading.Thread(
             target=self._pipeline_thread,
@@ -328,16 +314,12 @@ class App2(tk.Tk):
             state = {
                 "scene_manifest_path": config["scene_manifest_path"],
                 "character_db_path":   config["character_db_path"],
-                "images_dir":          config["images_dir"],
                 "scenes":              [],
                 "characters":          [],
                 "task_graph":          [],
                 "audio_results":       [],
-                "video_results":       [],
-                "swapped_results":     [],
-                "synced_results":      [],
-                "final_videos":        [],
                 "audio_tracks":        [],
+                "timing_manifest":     [],
                 "task_log":            [],
                 "status":              "processing",
                 "error":               None,
@@ -351,16 +333,15 @@ class App2(tk.Tk):
             self.after(0, lambda tg=result.get("task_graph", []):
                        self._update_scene_table(tg))
 
-            # Update scene cells from results
+            # Update audio cells from results
             self._populate_scene_cells(result)
 
             save_outputs_p2(result)
 
-            self.after(0, lambda: self._mark_output("outputs/raw_scenes/scene_*.mp4"))
             self.after(0, lambda: self._mark_output("outputs/audio/scene_*.wav"))
+            self.after(0, lambda: self._mark_output("outputs/timing_manifest.json"))
             self.after(0, lambda: self._mark_output("outputs/logs/phase2_task_log.json"))
             self.after(0, lambda: self._mark_output("outputs/phase2_manifest.json"))
-            self.after(0, lambda: self._mark_output("outputs/frames/  (frame sequences)"))
             self.after(0, self._on_success)
 
         except Exception as e:
@@ -369,35 +350,23 @@ class App2(tk.Tk):
             self.after(0, lambda err=str(e), trace=tb: self._on_error(err, trace))
 
     def _populate_scene_cells(self, result: dict):
-        audio_map   = {r["scene_id"]: r for r in result.get("audio_results",   [])}
-        video_map   = {r["scene_id"]: r for r in result.get("video_results",   [])}
-        swapped_map = {r["scene_id"]: r for r in result.get("swapped_results", [])}
-        synced_map  = {r["scene_id"]: r for r in result.get("synced_results",  [])}
+        audio_map = {r["scene_id"]: r for r in result.get("audio_results", [])}
 
         def _col(status):
-            if status == "done":   return "✅", GREEN
+            if status == "done":    return "✅", GREEN
             if status == "skipped": return "⏭", MUTED
-            if status == "error":  return "❌", RED
+            if status == "error":   return "❌", RED
             return "⏳", MUTED
 
         for task in result.get("task_graph", []):
             sid = task["scene_id"]
-            at, ac = _col(audio_map.get(sid,   {}).get("status", "pending"))
-            vt, vc = _col(video_map.get(sid,   {}).get("status", "pending"))
-            st, sc = _col(swapped_map.get(sid, {}).get("status", "pending"))
-            lt, lc = _col(synced_map.get(sid,  {}).get("status", "pending"))
+            at, ac = _col(audio_map.get(sid, {}).get("status", "pending"))
             self.after(0, lambda s=sid, t=at, c=ac: self._update_scene_cell(s, 2, t, c))
-            self.after(0, lambda s=sid, t=vt, c=vc: self._update_scene_cell(s, 3, t, c))
-            self.after(0, lambda s=sid, t=st, c=sc: self._update_scene_cell(s, 4, t, c))
-            self.after(0, lambda s=sid, t=lt, c=lc: self._update_scene_cell(s, 5, t, c))
 
     def _patch_agents(self):
         """Wraps each agent with GUI stage indicator updates."""
         import agents2.scene_parser as sp
         import agents2.voice_synth  as vs
-        import agents2.video_gen    as vg
-        import agents2.face_swap    as fs
-        import agents2.lip_sync     as ls
         app = self
 
         def wrap(orig_mod, attr, stage):
@@ -406,7 +375,6 @@ class App2(tk.Tk):
                 app.after(0, lambda s=stage: app._set_stage(s, "running"))
                 app.after(0, lambda: app.status_var.set(f"Running: {stage}…"))
                 try:
-                    # After scene_parser, populate scene table immediately
                     r = orig(state)
                     if attr == "scene_parser_agent" and r.get("task_graph"):
                         app.after(0, lambda tg=r["task_graph"]: app._update_scene_table(tg))
@@ -419,20 +387,16 @@ class App2(tk.Tk):
 
         wrap(sp, "scene_parser_agent", "Scene Parser")
         wrap(vs, "voice_synth_agent",  "Voice Synthesis")
-        wrap(vg, "video_gen_agent",    "Video Generation")
-        wrap(fs, "face_swap_agent",    "Face Swap")
-        wrap(ls, "lip_sync_agent",     "Lip Sync")
 
     def _on_success(self):
         self.run_btn.config(state="normal", text="▶  RUN PHASE 2 PIPELINE")
         self.status_var.set("✅  Phase 2 Complete — The Studio Floor")
         self._log("═" * 52, "gold")
         self._log("✅  Phase 2 Completed Successfully!", "green")
-        self._log("  outputs/raw_scenes/  — lip-synced scene videos", "green")
-        self._log("  outputs/audio/       — speech waveforms (.wav)",  "green")
-        self._log("  outputs/frames/      — intermediate frame seqs",  "green")
-        self._log("  outputs/logs/        — task graph execution log", "green")
-        self._log("  outputs/phase2_manifest.json",                    "green")
+        self._log("  outputs/audio/          — speech waveforms (.wav)", "green")
+        self._log("  outputs/timing_manifest.json — per-line timings",   "green")
+        self._log("  outputs/logs/            — task graph execution log","green")
+        self._log("  outputs/phase2_manifest.json",                       "green")
         self._log("═" * 52, "gold")
 
     def _on_error(self, msg: str, trace: str = ""):

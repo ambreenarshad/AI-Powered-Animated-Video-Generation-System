@@ -1,37 +1,32 @@
 # run_phase2.py
 """
-Headless CLI runner for Phase 2.
-Use this when running on a server without a display,
-or to test the pipeline without the Tkinter GUI.
+Headless CLI runner for Phase 2  —  Audio Generation.
 
 Usage:
     python run_phase2.py
     python run_phase2.py --manifest outputs/scene_manifest.json \
-                         --chardb   outputs/character_db.json   \
-                         --images   outputs/images
+                         --chardb   outputs/character_db.json
 """
 
 import argparse
-import json
 import sys
 import os
 
 
 def main():
-    parser = argparse.ArgumentParser(description="PROJECT MONTAGE Phase 2 — headless runner")
+    parser = argparse.ArgumentParser(
+        description="PROJECT MONTAGE Phase 2 — Audio Generation (headless)"
+    )
     parser.add_argument("--manifest", default="outputs/scene_manifest.json",
                         help="Path to scene_manifest.json from Phase 1")
     parser.add_argument("--chardb",   default="outputs/character_db.json",
                         help="Path to character_db.json from Phase 1")
-    parser.add_argument("--images",   default="outputs/images",
-                        help="Path to images directory from Phase 1")
     args = parser.parse_args()
 
     print("=" * 60)
-    print("  PROJECT MONTAGE — Phase 2: The Studio Floor")
+    print("  PROJECT MONTAGE — Phase 2: Audio Generation")
     print("=" * 60)
 
-    # Validate inputs
     for path, label in [(args.manifest, "scene_manifest.json"),
                         (args.chardb,   "character_db.json")]:
         if not os.path.exists(path):
@@ -47,16 +42,12 @@ def main():
     state = {
         "scene_manifest_path": args.manifest,
         "character_db_path":   args.chardb,
-        "images_dir":          args.images,
         "scenes":              [],
         "characters":          [],
         "task_graph":          [],
         "audio_results":       [],
-        "video_results":       [],
-        "swapped_results":     [],
-        "synced_results":      [],
-        "final_videos":        [],
         "audio_tracks":        [],
+        "timing_manifest":     [],
         "task_log":            [],
         "status":              "processing",
         "error":               None,
@@ -72,10 +63,10 @@ def main():
 
     print("\n" + "=" * 60)
     print("✅  Phase 2 Complete!")
-    print(f"    Final videos : {result.get('final_videos', [])}")
-    print(f"    Audio tracks : {result.get('audio_tracks', [])}")
-    print("    Logs         : outputs/logs/phase2_task_log.json")
-    print("    Manifest     : outputs/phase2_manifest.json")
+    print(f"    Audio tracks     : {result.get('audio_tracks', [])}")
+    print(f"    Timing manifest  : outputs/timing_manifest.json")
+    print(f"    Task log         : outputs/logs/phase2_task_log.json")
+    print(f"    Phase manifest   : outputs/phase2_manifest.json")
     print("=" * 60)
 
 

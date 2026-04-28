@@ -15,7 +15,7 @@ numpy>=1.24.0
 
 # Optional: Real TTS (ElevenLabs)
 # elevenlabs>=1.0.0           # pip install elevenlabs
-
+# edge-tts>=6.1.9           # pip install edge-tts
 # Optional: Real stock footage
 # pexels-api                  # set PEXELS_API_KEY in .env
 

@@ -1,427 +1,355 @@
 {
   "phase": 2,
-  "timestamp": "2026-04-20T14:20:42",
+  "timestamp": "2026-04-28T18:02:03",
   "total_scenes": 3,
   "task_graph": [
     {
       "scene_id": 1,
-      "location": "Mystic Forest",
+      "location": "Abandoned Warehouse",
       "characters": [
-        "Amna",
-        "Ali",
-        "Sara",
-        "Dragon Arinthal",
-        "Zorvath"
+        "Kashif Ahmed",
+        "Sara Khan",
+        "Ali Hassan"
       ],
       "dialogue": [
         {
-          "speaker": "Amna",
-          "line": "I've never seen a dragon up close, it's breathtaking.",
-          "visual_cue": "Close-up of Amna's face, eyes wide with wonder"
+          "speaker": "Kashif Ahmed",
+          "line": "You're both to blame for this mess! We should have acted sooner!",
+          "visual_cue": "Close-up of Kashif Ahmed's angry face, with a fierce tone"
         },
         {
-          "speaker": "Dragon Arinthal",
-          "line": "And I have never seen humans with such curiosity, it is refreshing.",
-          "visual_cue": "Low-angle shot of Dragon Arinthal, emphasizing its majesty"
+          "speaker": "Sara Khan",
+          "line": "How dare you! We did everything we could, but you were the one who hesitated!",
+          "visual_cue": "Medium shot of Sara Khan, her eyes blazing with anger, her fists clenched"
+        },
+        {
+          "speaker": "Ali Hassan",
+          "line": "Enough! We're not going to solve anything by fighting each other. We need to work together!",
+          "visual_cue": "Low-angle shot of Ali Hassan, his voice firm, but his eyes filled with a deep concern"
         }
       ],
       "char_meta": [
         {
-          "name": "Amna",
-          "gender": "female",
-          "personality": [
-            "curious",
-            "open-minded",
-            "awed"
-          ],
-          "appearance": "young adult with a slender build, long dark hair, and expressive brown eyes, wearing a mix of leather and cloth attire suitable for exploration",
-          "style": "fantasy realism",
-          "image_path": "outputs/images\\Amna.png"
-        },
-        {
-          "name": "Ali",
+          "name": "Kashif Ahmed",
           "gender": "male",
           "personality": [
-            "mysterious",
-            "adventurous",
-            " reserved"
+            "Angry",
+            "Accusatory",
+            "Cold"
           ],
-          "appearance": "Ali has an athletic yet lean build, with short, dark hair and piercing brown eyes. They wear a mix of leather and chain armor, suitable for exploring mystical forests and abandoned temples.",
-          "style": "fantasy, with a touch of realism",
-          "image_path": "outputs/images\\Ali.png"
+          "appearance": {
+            "age": "late 20s to early 30s",
+            "face": "chiseled features, sharp jawline, piercing eyes",
+            "hair": "dark, short, and neatly trimmed",
+            "build": "lean, athletic"
+          },
+          "style": "realistic"
         },
         {
-          "name": "Sara",
+          "name": "Sara Khan",
           "gender": "female",
           "personality": [
-            "curious",
-            "cautious",
-            "inquisitive"
+            "defiant",
+            "emotional",
+            "determined"
           ],
-          "appearance": "Sara has long, dark hair and piercing green eyes. She is slender and athletic, with a quiet confidence in her demeanor. She wears a pair of worn leather boots, a flowing white tunic, and carries a short sword at her side.",
-          "style": "stylized fantasy",
-          "image_path": "outputs/images\\Sara.png"
+          "appearance": "South Asian woman in her mid-30s, with long dark hair and expressive brown eyes, wearing a mix of modern and traditional clothing",
+          "style": "realistic"
         },
         {
-          "name": "Dragon Arinthal",
-          "gender": "female",
+          "name": "Ali Hassan",
+          "gender": "male",
           "personality": [
-            "curious",
-            "cautious",
-            "majestic"
+            "calm",
+            "assertive",
+            "frustrated"
           ],
-          "appearance": "a large, serpentine dragon with iridescent scales that shimmer in the light, and piercing emerald green eyes that seem to see right through you",
-          "style": "stylized, with a touch of fantasy and wonder",
-          "image_path": "outputs/images\\Dragon_Arinthal.png"
-        },
-        {
-          "name": "Zorvath",
-          "gender": "female",
-          "personality": [
-            "Mysterious",
-            "Cautious",
-            "Intuitive"
-          ],
-          "appearance": "Tall, slender figure with long, flowing hair and piercing eyes, dressed in dark, mystical attire",
-          "style": "Stylized, with a touch of mysticism and otherworldliness",
-          "image_path": "outputs/images\\Zorvath.png"
+          "appearance": {
+            "age": "late 20s to early 30s",
+            "height": "average to tall",
+            "facial_features": "strong jawline, expressive eyes",
+            "hair": "dark, short to medium length",
+            "attire": "casual, practical clothing"
+          },
+          "style": "realistic"
         }
       ],
       "audio_path": "outputs/audio\\scene_01.wav",
-      "video_path": "outputs/frames\\scene_01_raw.mp4",
-      "swapped_video_path": "outputs/frames\\scene_01_swapped.mp4",
-      "synced_video_path": "outputs/raw_scenes\\scene_01.mp4",
-      "status": "synced",
-      "error": null,
-      "character_images": {
-        "Amna": "outputs/images\\Amna.png",
-        "Ali": "outputs/images\\Ali.png",
-        "Sara": "outputs/images\\Sara.png",
-        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png",
-        "Zorvath": "outputs/images\\Zorvath.png"
-      },
-      "face_swap_dir": "outputs/frames"
+      "line_wavs": [
+        "outputs/audio\\scene_01_Kashif_Ahmed_line_000.wav",
+        "outputs/audio\\scene_01_Sara_Khan_line_001.wav",
+        "outputs/audio\\scene_01_Ali_Hassan_line_002.wav"
+      ],
+      "status": "audio_done",
+      "error": null
     },
     {
       "scene_id": 2,
-      "location": "Abandoned Temple",
+      "location": "Abandoned Warehouse",
       "characters": [
-        "Ali",
-        "Sara",
-        "Zorvath",
-        "Dragon Arinthal"
+        "Kashif Ahmed",
+        "Sara Khan",
+        "Ali Hassan"
       ],
       "dialogue": [
         {
-          "speaker": "Ali",
-          "line": "This temple holds many secrets, we must be careful.",
-          "visual_cue": "Tense lighting, with shadows dancing across the walls"
+          "speaker": "Kashif Ahmed",
+          "line": "You're just trying to cover your own tracks, Ali! You're not taking responsibility for your actions!",
+          "visual_cue": "Over-the-shoulder shot of Kashif Ahmed, his voice raised in accusation"
         },
         {
-          "speaker": "Sara",
-          "line": "What kind of secrets?",
-          "visual_cue": "Over-the-shoulder shot of Zorvath, with an air of mystery"
+          "speaker": "Ali Hassan",
+          "line": "That's not true, Kashif! I'm trying to find a way out of this situation, but you're not listening!",
+          "visual_cue": "Close-up of Ali Hassan's frustrated face, his eyes locked on Kashif Ahmed"
+        },
+        {
+          "speaker": "Sara Khan",
+          "line": "Stop it, both of you! This isn't getting us anywhere!",
+          "visual_cue": "Wide shot of the three characters, the tension between them palpable"
         }
       ],
       "char_meta": [
         {
-          "name": "Ali",
+          "name": "Kashif Ahmed",
           "gender": "male",
           "personality": [
-            "mysterious",
-            "adventurous",
-            " reserved"
+            "Angry",
+            "Accusatory",
+            "Cold"
           ],
-          "appearance": "Ali has an athletic yet lean build, with short, dark hair and piercing brown eyes. They wear a mix of leather and chain armor, suitable for exploring mystical forests and abandoned temples.",
-          "style": "fantasy, with a touch of realism",
-          "image_path": "outputs/images\\Ali.png"
+          "appearance": {
+            "age": "late 20s to early 30s",
+            "face": "chiseled features, sharp jawline, piercing eyes",
+            "hair": "dark, short, and neatly trimmed",
+            "build": "lean, athletic"
+          },
+          "style": "realistic"
         },
         {
-          "name": "Sara",
+          "name": "Sara Khan",
           "gender": "female",
           "personality": [
-            "curious",
-            "cautious",
-            "inquisitive"
+            "defiant",
+            "emotional",
+            "determined"
           ],
-          "appearance": "Sara has long, dark hair and piercing green eyes. She is slender and athletic, with a quiet confidence in her demeanor. She wears a pair of worn leather boots, a flowing white tunic, and carries a short sword at her side.",
-          "style": "stylized fantasy",
-          "image_path": "outputs/images\\Sara.png"
+          "appearance": "South Asian woman in her mid-30s, with long dark hair and expressive brown eyes, wearing a mix of modern and traditional clothing",
+          "style": "realistic"
         },
         {
-          "name": "Zorvath",
-          "gender": "female",
+          "name": "Ali Hassan",
+          "gender": "male",
           "personality": [
-            "Mysterious",
-            "Cautious",
-            "Intuitive"
+            "calm",
+            "assertive",
+            "frustrated"
           ],
-          "appearance": "Tall, slender figure with long, flowing hair and piercing eyes, dressed in dark, mystical attire",
-          "style": "Stylized, with a touch of mysticism and otherworldliness",
-          "image_path": "outputs/images\\Zorvath.png"
-        },
-        {
-          "name": "Dragon Arinthal",
-          "gender": "female",
-          "personality": [
-            "curious",
-            "cautious",
-            "majestic"
-          ],
-          "appearance": "a large, serpentine dragon with iridescent scales that shimmer in the light, and piercing emerald green eyes that seem to see right through you",
-          "style": "stylized, with a touch of fantasy and wonder",
-          "image_path": "outputs/images\\Dragon_Arinthal.png"
+          "appearance": {
+            "age": "late 20s to early 30s",
+            "height": "average to tall",
+            "facial_features": "strong jawline, expressive eyes",
+            "hair": "dark, short to medium length",
+            "attire": "casual, practical clothing"
+          },
+          "style": "realistic"
         }
       ],
       "audio_path": "outputs/audio\\scene_02.wav",
-      "video_path": "outputs/frames\\scene_02_raw.mp4",
-      "swapped_video_path": "outputs/frames\\scene_02_swapped.mp4",
-      "synced_video_path": "outputs/raw_scenes\\scene_02.mp4",
-      "status": "synced",
-      "error": null,
-      "character_images": {
-        "Ali": "outputs/images\\Ali.png",
-        "Sara": "outputs/images\\Sara.png",
-        "Zorvath": "outputs/images\\Zorvath.png",
-        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png"
-      },
-      "face_swap_dir": "outputs/frames"
+      "line_wavs": [
+        "outputs/audio\\scene_02_Kashif_Ahmed_line_000.wav",
+        "outputs/audio\\scene_02_Ali_Hassan_line_001.wav",
+        "outputs/audio\\scene_02_Sara_Khan_line_002.wav"
+      ],
+      "status": "audio_done",
+      "error": null
     },
     {
       "scene_id": 3,
-      "location": "Cosmic Landscape",
+      "location": "Abandoned Warehouse",
       "characters": [
-        "Amna",
-        "Sara",
-        "Dragon Arinthal",
-        "Zorvath"
+        "Kashif Ahmed",
+        "Sara Khan",
+        "Ali Hassan"
       ],
       "dialogue": [
         {
-          "speaker": "Dragon Arinthal",
-          "line": "The universe is full of wonder, but also danger, we must be cautious.",
-          "visual_cue": "Wide shot of the cosmic landscape, with stars and planets in the distance"
+          "speaker": "Ali Hassan",
+          "line": "I've had enough of this! We're never going to agree on anything!",
+          "visual_cue": "Low-angle shot of Ali Hassan, his voice firm, as he turns to leave"
         },
         {
-          "speaker": "Zorvath",
-          "line": "I sense a disturbance in the galaxy, we should investigate.",
-          "visual_cue": "Point-of-view shot from Zorvath's perspective, with a glowing aura"
+          "speaker": "Sara Khan",
+          "line": "Wait, Ali! Don't go! We need to talk this through!",
+          "visual_cue": "Medium shot of Sara Khan, her eyes filled with a desperate plea"
+        },
+        {
+          "speaker": "Kashif Ahmed",
+          "line": "Let him go, Sara. We're better off without him.",
+          "visual_cue": "Close-up of Kashif Ahmed's cold, hard face, his eyes filled with a deep-seated anger"
         }
       ],
       "char_meta": [
         {
-          "name": "Amna",
-          "gender": "female",
+          "name": "Kashif Ahmed",
+          "gender": "male",
           "personality": [
-            "curious",
-            "open-minded",
-            "awed"
+            "Angry",
+            "Accusatory",
+            "Cold"
           ],
-          "appearance": "young adult with a slender build, long dark hair, and expressive brown eyes, wearing a mix of leather and cloth attire suitable for exploration",
-          "style": "fantasy realism",
-          "image_path": "outputs/images\\Amna.png"
+          "appearance": {
+            "age": "late 20s to early 30s",
+            "face": "chiseled features, sharp jawline, piercing eyes",
+            "hair": "dark, short, and neatly trimmed",
+            "build": "lean, athletic"
+          },
+          "style": "realistic"
         },
         {
-          "name": "Sara",
+          "name": "Sara Khan",
           "gender": "female",
           "personality": [
-            "curious",
-            "cautious",
-            "inquisitive"
+            "defiant",
+            "emotional",
+            "determined"
           ],
-          "appearance": "Sara has long, dark hair and piercing green eyes. She is slender and athletic, with a quiet confidence in her demeanor. She wears a pair of worn leather boots, a flowing white tunic, and carries a short sword at her side.",
-          "style": "stylized fantasy",
-          "image_path": "outputs/images\\Sara.png"
+          "appearance": "South Asian woman in her mid-30s, with long dark hair and expressive brown eyes, wearing a mix of modern and traditional clothing",
+          "style": "realistic"
         },
         {
-          "name": "Dragon Arinthal",
-          "gender": "female",
+          "name": "Ali Hassan",
+          "gender": "male",
           "personality": [
-            "curious",
-            "cautious",
-            "majestic"
+            "calm",
+            "assertive",
+            "frustrated"
           ],
-          "appearance": "a large, serpentine dragon with iridescent scales that shimmer in the light, and piercing emerald green eyes that seem to see right through you",
-          "style": "stylized, with a touch of fantasy and wonder",
-          "image_path": "outputs/images\\Dragon_Arinthal.png"
-        },
-        {
-          "name": "Zorvath",
-          "gender": "female",
-          "personality": [
-            "Mysterious",
-            "Cautious",
-            "Intuitive"
-          ],
-          "appearance": "Tall, slender figure with long, flowing hair and piercing eyes, dressed in dark, mystical attire",
-          "style": "Stylized, with a touch of mysticism and otherworldliness",
-          "image_path": "outputs/images\\Zorvath.png"
+          "appearance": {
+            "age": "late 20s to early 30s",
+            "height": "average to tall",
+            "facial_features": "strong jawline, expressive eyes",
+            "hair": "dark, short to medium length",
+            "attire": "casual, practical clothing"
+          },
+          "style": "realistic"
         }
       ],
       "audio_path": "outputs/audio\\scene_03.wav",
-      "video_path": "outputs/frames\\scene_03_raw.mp4",
-      "swapped_video_path": "outputs/frames\\scene_03_swapped.mp4",
-      "synced_video_path": "outputs/raw_scenes\\scene_03.mp4",
-      "status": "synced",
-      "error": null,
-      "character_images": {
-        "Amna": "outputs/images\\Amna.png",
-        "Sara": "outputs/images\\Sara.png",
-        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png",
-        "Zorvath": "outputs/images\\Zorvath.png"
-      },
-      "face_swap_dir": "outputs/frames"
+      "line_wavs": [
+        "outputs/audio\\scene_03_Ali_Hassan_line_000.wav",
+        "outputs/audio\\scene_03_Sara_Khan_line_001.wav",
+        "outputs/audio\\scene_03_Kashif_Ahmed_line_002.wav"
+      ],
+      "status": "audio_done",
+      "error": null
     }
   ],
   "audio_results": [
     {
       "scene_id": 1,
       "audio_path": "outputs/audio\\scene_01.wav",
-      "duration": 8.544,
-      "method": "edge-tts",
+      "duration": 17.784,
+      "method": "elevenlabs",
       "line_wavs": [
-        "outputs/audio\\scene_01_Amna_line_000.wav",
-        "outputs/audio\\scene_01_Dragon_Arinthal_line_001.wav"
+        "outputs/audio\\scene_01_Kashif_Ahmed_line_000.wav",
+        "outputs/audio\\scene_01_Sara_Khan_line_001.wav",
+        "outputs/audio\\scene_01_Ali_Hassan_line_002.wav"
+      ],
+      "line_timing": [
+        {
+          "speaker": "Kashif Ahmed",
+          "line": "You're both to blame for this mess! We should have acted sooner!",
+          "audio_file": "outputs/audio\\scene_01_Kashif_Ahmed_line_000.wav",
+          "start_ms": 0.0,
+          "end_ms": 5064.0
+        },
+        {
+          "speaker": "Sara Khan",
+          "line": "How dare you! We did everything we could, but you were the one who hesitated!",
+          "audio_file": "outputs/audio\\scene_01_Sara_Khan_line_001.wav",
+          "start_ms": 5064.0,
+          "end_ms": 10320.0
+        },
+        {
+          "speaker": "Ali Hassan",
+          "line": "Enough! We're not going to solve anything by fighting each other. We need to work together!",
+          "audio_file": "outputs/audio\\scene_01_Ali_Hassan_line_002.wav",
+          "start_ms": 10320.0,
+          "end_ms": 17784.0
+        }
       ],
       "status": "done"
     },
     {
       "scene_id": 2,
       "audio_path": "outputs/audio\\scene_02.wav",
-      "duration": 6.384,
-      "method": "edge-tts",
+      "duration": 17.952,
+      "method": "elevenlabs",
       "line_wavs": [
-        "outputs/audio\\scene_02_Ali_line_000.wav",
-        "outputs/audio\\scene_02_Sara_line_001.wav"
+        "outputs/audio\\scene_02_Kashif_Ahmed_line_000.wav",
+        "outputs/audio\\scene_02_Ali_Hassan_line_001.wav",
+        "outputs/audio\\scene_02_Sara_Khan_line_002.wav"
+      ],
+      "line_timing": [
+        {
+          "speaker": "Kashif Ahmed",
+          "line": "You're just trying to cover your own tracks, Ali! You're not taking responsibility for your actions!",
+          "audio_file": "outputs/audio\\scene_02_Kashif_Ahmed_line_000.wav",
+          "start_ms": 0.0,
+          "end_ms": 7032.0
+        },
+        {
+          "speaker": "Ali Hassan",
+          "line": "That's not true, Kashif! I'm trying to find a way out of this situation, but you're not listening!",
+          "audio_file": "outputs/audio\\scene_02_Ali_Hassan_line_001.wav",
+          "start_ms": 7032.0,
+          "end_ms": 13944.0
+        },
+        {
+          "speaker": "Sara Khan",
+          "line": "Stop it, both of you! This isn't getting us anywhere!",
+          "audio_file": "outputs/audio\\scene_02_Sara_Khan_line_002.wav",
+          "start_ms": 13944.0,
+          "end_ms": 17952.0
+        }
       ],
       "status": "done"
     },
     {
       "scene_id": 3,
       "audio_path": "outputs/audio\\scene_03.wav",
-      "duration": 9.24,
-      "method": "edge-tts",
+      "duration": 14.112,
+      "method": "elevenlabs",
       "line_wavs": [
-        "outputs/audio\\scene_03_Dragon_Arinthal_line_000.wav",
-        "outputs/audio\\scene_03_Zorvath_line_001.wav"
+        "outputs/audio\\scene_03_Ali_Hassan_line_000.wav",
+        "outputs/audio\\scene_03_Sara_Khan_line_001.wav",
+        "outputs/audio\\scene_03_Kashif_Ahmed_line_002.wav"
+      ],
+      "line_timing": [
+        {
+          "speaker": "Ali Hassan",
+          "line": "I've had enough of this! We're never going to agree on anything!",
+          "audio_file": "outputs/audio\\scene_03_Ali_Hassan_line_000.wav",
+          "start_ms": 0.0,
+          "end_ms": 5136.0
+        },
+        {
+          "speaker": "Sara Khan",
+          "line": "Wait, Ali! Don't go! We need to talk this through!",
+          "audio_file": "outputs/audio\\scene_03_Sara_Khan_line_001.wav",
+          "start_ms": 5136.0,
+          "end_ms": 9504.0
+        },
+        {
+          "speaker": "Kashif Ahmed",
+          "line": "Let him go, Sara. We're better off without him.",
+          "audio_file": "outputs/audio\\scene_03_Kashif_Ahmed_line_002.wav",
+          "start_ms": 9504.0,
+          "end_ms": 14112.0
+        }
       ],
       "status": "done"
     }
-  ],
-  "video_results": [
-    {
-      "scene_id": 1,
-      "video_path": "outputs/frames\\scene_01_raw.mp4",
-      "frame_dir": "outputs/frames\\scene_01_frames",
-      "num_frames": 0,
-      "method": "stock",
-      "status": "done"
-    },
-    {
-      "scene_id": 2,
-      "video_path": "outputs/frames\\scene_02_raw.mp4",
-      "frame_dir": "outputs/frames\\scene_02_frames",
-      "num_frames": 0,
-      "method": "stock",
-      "status": "done"
-    },
-    {
-      "scene_id": 3,
-      "video_path": "outputs/frames\\scene_03_raw.mp4",
-      "frame_dir": "outputs/frames\\scene_03_frames",
-      "num_frames": 0,
-      "method": "stock",
-      "status": "done"
-    }
-  ],
-  "swapped_results": [
-    {
-      "scene_id": 1,
-      "swapped_video_path": "outputs/frames\\scene_01_swapped.mp4",
-      "validated_chars": [
-        "Amna",
-        "Ali",
-        "Sara",
-        "Dragon Arinthal",
-        "Zorvath"
-      ],
-      "face_swap_dir": "outputs/frames",
-      "character_images": {
-        "Amna": "outputs/images\\Amna.png",
-        "Ali": "outputs/images\\Ali.png",
-        "Sara": "outputs/images\\Sara.png",
-        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png",
-        "Zorvath": "outputs/images\\Zorvath.png"
-      },
-      "status": "done"
-    },
-    {
-      "scene_id": 2,
-      "swapped_video_path": "outputs/frames\\scene_02_swapped.mp4",
-      "validated_chars": [
-        "Ali",
-        "Sara",
-        "Zorvath",
-        "Dragon Arinthal"
-      ],
-      "face_swap_dir": "outputs/frames",
-      "character_images": {
-        "Ali": "outputs/images\\Ali.png",
-        "Sara": "outputs/images\\Sara.png",
-        "Zorvath": "outputs/images\\Zorvath.png",
-        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png"
-      },
-      "status": "done"
-    },
-    {
-      "scene_id": 3,
-      "swapped_video_path": "outputs/frames\\scene_03_swapped.mp4",
-      "validated_chars": [
-        "Amna",
-        "Sara",
-        "Dragon Arinthal",
-        "Zorvath"
-      ],
-      "face_swap_dir": "outputs/frames",
-      "character_images": {
-        "Amna": "outputs/images\\Amna.png",
-        "Sara": "outputs/images\\Sara.png",
-        "Dragon Arinthal": "outputs/images\\Dragon_Arinthal.png",
-        "Zorvath": "outputs/images\\Zorvath.png"
-      },
-      "status": "done"
-    }
-  ],
-  "synced_results": [
-    {
-      "scene_id": 1,
-      "synced_video_path": "outputs/raw_scenes\\scene_01.mp4",
-      "audio_duration": 8.544,
-      "total_frames": 215,
-      "alignment_log": "outputs/raw_scenes\\scene_01_alignment.json",
-      "status": "done"
-    },
-    {
-      "scene_id": 2,
-      "synced_video_path": "outputs/raw_scenes\\scene_02.mp4",
-      "audio_duration": 6.384,
-      "total_frames": 160,
-      "alignment_log": "outputs/raw_scenes\\scene_02_alignment.json",
-      "status": "done"
-    },
-    {
-      "scene_id": 3,
-      "synced_video_path": "outputs/raw_scenes\\scene_03.mp4",
-      "audio_duration": 9.24,
-      "total_frames": 232,
-      "alignment_log": "outputs/raw_scenes\\scene_03_alignment.json",
-      "status": "done"
-    }
-  ],
-  "final_videos": [
-    "outputs/raw_scenes\\scene_01.mp4",
-    "outputs/raw_scenes\\scene_02.mp4",
-    "outputs/raw_scenes\\scene_03.mp4"
   ],
   "audio_tracks": [
     "outputs/audio\\scene_01.wav",

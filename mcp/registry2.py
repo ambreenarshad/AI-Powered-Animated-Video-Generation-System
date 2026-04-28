@@ -10,14 +10,15 @@ class MCPRegistry2:
         self.schemas = {}
 
     def register(self, name: str, func, schema: dict = None):
-        self.tools[name] = func
+        self.tools[name]  = func
         if schema:
             self.schemas[name] = schema
 
     def get_tool(self, name: str):
         if name not in self.tools:
             raise Exception(
-                f"[MCP2] Tool '{name}' not registered. Available: {list(self.tools.keys())}"
+                f"[MCP2] Tool '{name}' not registered. "
+                f"Available: {list(self.tools.keys())}"
             )
         return self.tools[name]
 
