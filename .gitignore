@@ -19,11 +19,13 @@ env/
 .venv/
 
 # Generated outputs (keep structure, ignore content)
-data/outputs/audio/
-data/outputs/video/
-data/outputs/*.json
-data/state_versions/v*/
-data/temp/
+outputs/audio/*.wav
+outputs/logs/
+outputs/*.json
+
+memory_db/
+memory_db/*.sqlite3
+memory_db/*.bin
 
 # IDE
 .vscode/
