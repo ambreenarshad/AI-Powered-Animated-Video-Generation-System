@@ -2,79 +2,61 @@
   "scenes": [
     {
       "scene_id": 1,
-      "location": "Abandoned Warehouse",
+      "location": "Abandoned Rooftop in Manhattan",
       "characters": [
-        "Kashif Ahmed",
-        "Sara Khan",
-        "Ali Hassan"
+        "Alex",
+        "May"
       ],
       "dialogue": [
         {
-          "speaker": "Kashif Ahmed",
-          "line": "You're both to blame for this mess! We should have acted sooner!",
-          "visual_cue": "Close-up of Kashif Ahmed's angry face, with a fierce tone"
+          "speaker": "Alex",
+          "line": "We need to get in and out, no more than 5 minutes. The security system resets every 6 minutes.",
+          "visual_cue": "Close-up of Alex's face, intense lighting highlighting his determination"
         },
         {
-          "speaker": "Sara Khan",
-          "line": "How dare you! We did everything we could, but you were the one who hesitated!",
-          "visual_cue": "Medium shot of Sara Khan, her eyes blazing with anger, her fists clenched"
-        },
-        {
-          "speaker": "Ali Hassan",
-          "line": "Enough! We're not going to solve anything by fighting each other. We need to work together!",
-          "visual_cue": "Low-angle shot of Ali Hassan, his voice firm, but his eyes filled with a deep concern"
+          "speaker": "May",
+          "line": "I've got the ventilation route mapped out. We can drop in from the east side, avoid the main cameras.",
+          "visual_cue": "Over-the-shoulder shot of May, her eyes fixed on the blueprints"
         }
       ]
     },
     {
       "scene_id": 2,
-      "location": "Abandoned Warehouse",
+      "location": "Dimly Lit Alleyway in Brooklyn",
       "characters": [
-        "Kashif Ahmed",
-        "Sara Khan",
-        "Ali Hassan"
+        "Alex",
+        "May"
       ],
       "dialogue": [
         {
-          "speaker": "Kashif Ahmed",
-          "line": "You're just trying to cover your own tracks, Ali! You're not taking responsibility for your actions!",
-          "visual_cue": "Over-the-shoulder shot of Kashif Ahmed, his voice raised in accusation"
+          "speaker": "May",
+          "line": "What's the plan if we get caught? We can't take on the whole security team.",
+          "visual_cue": "Low-angle shot of May, her voice low and urgent"
         },
         {
-          "speaker": "Ali Hassan",
-          "line": "That's not true, Kashif! I'm trying to find a way out of this situation, but you're not listening!",
-          "visual_cue": "Close-up of Ali Hassan's frustrated face, his eyes locked on Kashif Ahmed"
-        },
-        {
-          "speaker": "Sara Khan",
-          "line": "Stop it, both of you! This isn't getting us anywhere!",
-          "visual_cue": "Wide shot of the three characters, the tension between them palpable"
+          "speaker": "Alex",
+          "line": "We won't get caught. We have the element of surprise, and I've got a contingency plan in place.",
+          "visual_cue": "Close-up of Alex's hands, gripping a small pouch of lockpicks"
         }
       ]
     },
     {
       "scene_id": 3,
-      "location": "Abandoned Warehouse",
+      "location": "High-Rise Office Building in Midtown",
       "characters": [
-        "Kashif Ahmed",
-        "Sara Khan",
-        "Ali Hassan"
+        "Alex",
+        "May"
       ],
       "dialogue": [
         {
-          "speaker": "Ali Hassan",
-          "line": "I've had enough of this! We're never going to agree on anything!",
-          "visual_cue": "Low-angle shot of Ali Hassan, his voice firm, as he turns to leave"
+          "speaker": "Alex",
+          "line": "Now's our chance. The guard is making his rounds, we have 3 minutes to get to the server room.",
+          "visual_cue": "Wide shot of the office building, the camera panning up to the roof"
         },
         {
-          "speaker": "Sara Khan",
-          "line": "Wait, Ali! Don't go! We need to talk this through!",
-          "visual_cue": "Medium shot of Sara Khan, her eyes filled with a desperate plea"
-        },
-        {
-          "speaker": "Kashif Ahmed",
-          "line": "Let him go, Sara. We're better off without him.",
-          "visual_cue": "Close-up of Kashif Ahmed's cold, hard face, his eyes filled with a deep-seated anger"
+          "speaker": "May",
+          "line": "Let's move, I've got the hacking tool ready. We need to disable the alarms before we can access the data.",
+          "visual_cue": "Point-of-view shot of May, her fingers flying across the keyboard"
         }
       ]
     }

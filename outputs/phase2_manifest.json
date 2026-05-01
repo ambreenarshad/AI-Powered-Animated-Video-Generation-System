@@ -8,19 +8,19 @@
   "scenes": [
     {
       "scene_id": 1,
-      "location": "Abandoned Warehouse",
+      "location": "Abandoned Rooftop in Manhattan",
       "status": "audio_done",
       "audio_path": "outputs/audio\\scene_01.wav"
     },
     {
       "scene_id": 2,
-      "location": "Abandoned Warehouse",
+      "location": "Dimly Lit Alleyway in Brooklyn",
       "status": "audio_done",
       "audio_path": "outputs/audio\\scene_02.wav"
     },
     {
       "scene_id": 3,
-      "location": "Abandoned Warehouse",
+      "location": "High-Rise Office Building in Midtown",
       "status": "audio_done",
       "audio_path": "outputs/audio\\scene_03.wav"
     }

@@ -1,46 +1,24 @@
 [
   {
-    "name": "Kashif Ahmed",
+    "name": "Alex",
     "gender": "male",
     "personality": [
-      "Angry",
-      "Accusatory",
-      "Cold"
+      "determined",
+      "resourceful",
+      "confident"
     ],
-    "appearance": {
-      "age": "late 20s to early 30s",
-      "face": "chiseled features, sharp jawline, piercing eyes",
-      "hair": "dark, short, and neatly trimmed",
-      "build": "lean, athletic"
-    },
-    "style": "realistic"
+    "appearance": "short, dark hair, intense brown eyes, athletic build, wearing a black leather jacket and carrying a backpack with various tools",
+    "style": "noir"
   },
   {
-    "name": "Sara Khan",
+    "name": "May",
     "gender": "female",
     "personality": [
-      "defiant",
-      "emotional",
-      "determined"
+      "resourceful",
+      "cautious",
+      "intelligent"
     ],
-    "appearance": "South Asian woman in her mid-30s, with long dark hair and expressive brown eyes, wearing a mix of modern and traditional clothing",
-    "style": "realistic"
-  },
-  {
-    "name": "Ali Hassan",
-    "gender": "male",
-    "personality": [
-      "calm",
-      "assertive",
-      "frustrated"
-    ],
-    "appearance": {
-      "age": "late 20s to early 30s",
-      "height": "average to tall",
-      "facial_features": "strong jawline, expressive eyes",
-      "hair": "dark, short to medium length",
-      "attire": "casual, practical clothing"
-    },
-    "style": "realistic"
+    "appearance": "short, dark hair and piercing brown eyes, athletic build, wearing a black leather jacket and carrying a backpack with hacking tools",
+    "style": "stylized, with a touch of noir"
   }
 ]

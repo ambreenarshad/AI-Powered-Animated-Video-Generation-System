@@ -1,74 +1,50 @@
 [
   {
     "scene_id": 1,
-    "speaker": "Kashif Ahmed",
-    "line": "You're both to blame for this mess! We should have acted sooner!",
-    "audio_file": "outputs/audio\\scene_01_Kashif_Ahmed_line_000.wav",
+    "speaker": "Alex",
+    "line": "We need to get in and out, no more than 5 minutes. The security system resets every 6 minutes.",
+    "audio_file": "outputs/audio\\scene_01_Alex_line_000.wav",
     "start_ms": 0.0,
-    "end_ms": 5064.0
+    "end_ms": 8016.0
   },
   {
     "scene_id": 1,
-    "speaker": "Sara Khan",
-    "line": "How dare you! We did everything we could, but you were the one who hesitated!",
-    "audio_file": "outputs/audio\\scene_01_Sara_Khan_line_001.wav",
-    "start_ms": 5064.0,
-    "end_ms": 10320.0
-  },
-  {
-    "scene_id": 1,
-    "speaker": "Ali Hassan",
-    "line": "Enough! We're not going to solve anything by fighting each other. We need to work together!",
-    "audio_file": "outputs/audio\\scene_01_Ali_Hassan_line_002.wav",
-    "start_ms": 10320.0,
-    "end_ms": 17784.0
+    "speaker": "May",
+    "line": "I've got the ventilation route mapped out. We can drop in from the east side, avoid the main cameras.",
+    "audio_file": "outputs/audio\\scene_01_May_line_001.wav",
+    "start_ms": 8016.0,
+    "end_ms": 15144.0
   },
   {
     "scene_id": 2,
-    "speaker": "Kashif Ahmed",
-    "line": "You're just trying to cover your own tracks, Ali! You're not taking responsibility for your actions!",
-    "audio_file": "outputs/audio\\scene_02_Kashif_Ahmed_line_000.wav",
+    "speaker": "May",
+    "line": "What's the plan if we get caught? We can't take on the whole security team.",
+    "audio_file": "outputs/audio\\scene_02_May_line_000.wav",
     "start_ms": 0.0,
-    "end_ms": 7032.0
+    "end_ms": 5328.0
   },
   {
     "scene_id": 2,
-    "speaker": "Ali Hassan",
-    "line": "That's not true, Kashif! I'm trying to find a way out of this situation, but you're not listening!",
-    "audio_file": "outputs/audio\\scene_02_Ali_Hassan_line_001.wav",
-    "start_ms": 7032.0,
-    "end_ms": 13944.0
-  },
-  {
-    "scene_id": 2,
-    "speaker": "Sara Khan",
-    "line": "Stop it, both of you! This isn't getting us anywhere!",
-    "audio_file": "outputs/audio\\scene_02_Sara_Khan_line_002.wav",
-    "start_ms": 13944.0,
-    "end_ms": 17952.0
+    "speaker": "Alex",
+    "line": "We won't get caught. We have the element of surprise, and I've got a contingency plan in place.",
+    "audio_file": "outputs/audio\\scene_02_Alex_line_001.wav",
+    "start_ms": 5328.0,
+    "end_ms": 12336.0
   },
   {
     "scene_id": 3,
-    "speaker": "Ali Hassan",
-    "line": "I've had enough of this! We're never going to agree on anything!",
-    "audio_file": "outputs/audio\\scene_03_Ali_Hassan_line_000.wav",
+    "speaker": "Alex",
+    "line": "Now's our chance. The guard is making his rounds, we have 3 minutes to get to the server room.",
+    "audio_file": "outputs/audio\\scene_03_Alex_line_000.wav",
     "start_ms": 0.0,
-    "end_ms": 5136.0
+    "end_ms": 7560.0
   },
   {
     "scene_id": 3,
-    "speaker": "Sara Khan",
-    "line": "Wait, Ali! Don't go! We need to talk this through!",
-    "audio_file": "outputs/audio\\scene_03_Sara_Khan_line_001.wav",
-    "start_ms": 5136.0,
-    "end_ms": 9504.0
-  },
-  {
-    "scene_id": 3,
-    "speaker": "Kashif Ahmed",
-    "line": "Let him go, Sara. We're better off without him.",
-    "audio_file": "outputs/audio\\scene_03_Kashif_Ahmed_line_002.wav",
-    "start_ms": 9504.0,
-    "end_ms": 14112.0
+    "speaker": "May",
+    "line": "Let's move, I've got the hacking tool ready. We need to disable the alarms before we can access the data.",
+    "audio_file": "outputs/audio\\scene_03_May_line_001.wav",
+    "start_ms": 7560.0,
+    "end_ms": 14760.0
   }
 ]

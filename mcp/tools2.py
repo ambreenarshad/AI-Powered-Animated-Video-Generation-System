@@ -4,18 +4,15 @@ Phase 2 MCP Tools  —  Audio Generation Only
 ─────────────────────────────────────────────
 Tools:
   1. get_task_graph             — decompose scenes into tasks
-  2. voice_cloning_synthesizer  — TTS per dialogue line (ElevenLabs / edge-tts / espeak-ng)
+  2. voice_cloning_synthesizer  — TTS per dialogue line (edge-tts primary, espeak-ng fallback)
   3. commit_memory              — write entries to vector store
+
+Backend priority: edge-tts → espeak-ng (fallback)
+ElevenLabs removed; edge-tts is always attempted first.
 """
 
 import os, json, wave, struct, hashlib, subprocess, shutil, re, asyncio
 from typing import Dict, List
-
-try:
-    import requests
-    HAS_REQUESTS = True
-except ImportError:
-    HAS_REQUESTS = False
 
 try:
     import edge_tts
@@ -25,8 +22,6 @@ except ImportError:
 
 from dotenv import load_dotenv
 load_dotenv()
-
-ELEVENLABS_KEY = os.getenv("ELEVENLABS_API_KEY")
 
 
 # ── Tool schemas ──────────────────────────────────────────────────────────────
@@ -123,32 +118,67 @@ def _infer_gender(name: str, char_meta: dict, all_scene_dialogues: list) -> str:
     return gender
 
 
-# ── Voice parameter tables ────────────────────────────────────────────────────
-_MALE_VOICE_PARAMS   = [(28, 135), (32, 145), (25, 130), (35, 150)]
-_FEMALE_VOICE_PARAMS = [(68, 150), (72, 140), (65, 155), (75, 145)]
+# ── Edge-TTS voice pools ──────────────────────────────────────────────────────
+# Expanded pools ensure different characters get meaningfully distinct voices.
+# Each voice has a different accent, pitch, and speaking style.
+_EDGE_MALE_VOICES = [
+    "en-US-GuyNeural",        # American, neutral/authoritative
+    "en-GB-RyanNeural",       # British, warm
+    "en-AU-WilliamNeural",    # Australian, relaxed
+    "en-US-ChristopherNeural",# American, deep/confident
+    "en-US-EricNeural",       # American, friendly
+    "en-GB-ThomasNeural",     # British, formal
+    "en-IE-ConnorNeural",     # Irish, distinctive lilt
+    "en-US-RogerNeural",      # American, older/mature
+    "en-NZ-MitchellNeural",   # New Zealand, casual
+    "en-CA-LiamNeural",       # Canadian, measured
+]
 
-_EL_MALE_VOICES   = ["ErXwobaYiN019PkySvjV", "VR6AewLTigWG4xSOukaG", "pNInz6obpgDQGcFmaJgB"]
-_EL_FEMALE_VOICES = ["21m00Tcm4TlvDq8ikWAM", "AZnzlk1XvdvUeBnXmlld", "EXAVITQu4vr4xnSDxMaL"]
-_EDGE_MALE_VOICES   = ["en-US-GuyNeural",   "en-GB-RyanNeural",  "en-AU-WilliamNeural"]
-_EDGE_FEMALE_VOICES = ["en-US-JennyNeural", "en-GB-SoniaNeural", "en-AU-NatashaNeural"]
+_EDGE_FEMALE_VOICES = [
+    "en-US-JennyNeural",      # American, warm/conversational
+    "en-GB-SoniaNeural",      # British, crisp
+    "en-AU-NatashaNeural",    # Australian, bright
+    "en-US-AriaNeural",       # American, expressive
+    "en-US-MichelleNeural",   # American, professional
+    "en-GB-LibbyNeural",      # British, friendly
+    "en-IE-EmilyNeural",      # Irish, gentle lilt
+    "en-US-MonicaNeural",     # American, warm/mature
+    "en-NZ-MollyNeural",      # New Zealand, upbeat
+    "en-CA-ClaraNeural",      # Canadian, clear/neutral
+]
+
+# espeak-ng fallback parameters: (pitch, speed) per gender slot
+_MALE_VOICE_PARAMS   = [(28, 135), (32, 145), (25, 130), (35, 150),
+                        (30, 140), (22, 128), (38, 155), (26, 132),
+                        (33, 148), (20, 125)]
+_FEMALE_VOICE_PARAMS = [(68, 150), (72, 140), (65, 155), (75, 145),
+                        (70, 152), (78, 138), (62, 158), (80, 143),
+                        (66, 150), (74, 147)]
 
 
 def _voice_params_for(name: str, gender: str) -> dict:
-    idx = int(hashlib.md5(name.encode()).hexdigest(), 16) % 4
+    """
+    Derive a stable, character-unique voice config from the character name hash.
+    The hash index selects from the full voice pool so every character gets
+    a distinct voice that never changes between runs.
+    """
+    pool_size = len(_EDGE_MALE_VOICES)   # both pools are the same length
+    idx = int(hashlib.md5(name.encode()).hexdigest(), 16) % pool_size
+
     if gender == "male":
-        pitch, speed = _MALE_VOICE_PARAMS[idx % len(_MALE_VOICE_PARAMS)]
-        el_voice     = _EL_MALE_VOICES[idx % len(_EL_MALE_VOICES)]
-        edge_voice   = _EDGE_MALE_VOICES[idx % len(_EDGE_MALE_VOICES)]
+        edge_voice       = _EDGE_MALE_VOICES[idx]
+        pitch, speed     = _MALE_VOICE_PARAMS[idx % len(_MALE_VOICE_PARAMS)]
     else:
-        pitch, speed = _FEMALE_VOICE_PARAMS[idx % len(_FEMALE_VOICE_PARAMS)]
-        el_voice     = _EL_FEMALE_VOICES[idx % len(_EL_FEMALE_VOICES)]
-        edge_voice   = _EDGE_FEMALE_VOICES[idx % len(_EDGE_FEMALE_VOICES)]
-    return {"pitch": pitch, "speed": speed, "el_voice": el_voice, "edge_voice": edge_voice}
+        edge_voice       = _EDGE_FEMALE_VOICES[idx]
+        pitch, speed     = _FEMALE_VOICE_PARAMS[idx % len(_FEMALE_VOICE_PARAMS)]
+
+    return {"pitch": pitch, "speed": speed, "edge_voice": edge_voice}
 
 
 # ── Synthesis backends ────────────────────────────────────────────────────────
 
 def _synth_espeak(text: str, out_wav: str, pitch: int, speed: int) -> bool:
+    """Fallback: espeak-ng synthesis."""
     try:
         r = subprocess.run(
             ["espeak-ng", "-w", out_wav, "-p", str(pitch), "-s", str(speed), text],
@@ -159,39 +189,8 @@ def _synth_espeak(text: str, out_wav: str, pitch: int, speed: int) -> bool:
         print(f"  ⚠ espeak-ng: {e}"); return False
 
 
-def _synth_elevenlabs(text: str, voice_id: str, out_wav: str) -> bool:
-    if not (HAS_REQUESTS and ELEVENLABS_KEY):
-        return False
-    try:
-        resp = requests.post(
-            f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
-            headers={
-                "xi-api-key":    ELEVENLABS_KEY,
-                "Content-Type":  "application/json",
-                "Accept":        "audio/mpeg",
-            },
-            json={
-                "text":     text,
-                "model_id": "eleven_flash_v2_5",
-                "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
-            },
-            timeout=60,
-        )
-        if resp.status_code == 200 and len(resp.content) > 1024:
-            mp3 = out_wav.replace(".wav", "_el.mp3")
-            with open(mp3, "wb") as f:
-                f.write(resp.content)
-            subprocess.run(["ffmpeg", "-y", "-i", mp3, out_wav],
-                           capture_output=True, check=True, timeout=30)
-            if os.path.exists(mp3):
-                os.remove(mp3)
-            return os.path.exists(out_wav) and os.path.getsize(out_wav) > 512
-    except Exception as e:
-        print(f"  ⚠ ElevenLabs: {e}")
-    return False
-
-
 async def _synth_edge_tts_async(text: str, out_mp3: str, voice: str) -> bool:
+    """Async core for edge-tts synthesis."""
     if not HAS_EDGE_TTS:
         return False
     try:
@@ -203,27 +202,48 @@ async def _synth_edge_tts_async(text: str, out_mp3: str, voice: str) -> bool:
 
 
 def _synth_edge_tts(text: str, out_wav: str, voice: str) -> bool:
+    """
+    Synchronous wrapper around the async edge-tts call.
+    Converts the resulting MP3 to WAV via ffmpeg so the rest of the
+    pipeline can treat all audio uniformly as WAV.
+    """
     if not HAS_EDGE_TTS:
         return False
+
     mp3 = out_wav.replace(".wav", "_et.mp3")
     try:
+        # Handle both running and non-running event loops gracefully
         try:
             loop = asyncio.get_event_loop()
-            ok = (loop.run_until_complete(_synth_edge_tts_async(text, mp3, voice))
-                  if not loop.is_running()
-                  else asyncio.run(_synth_edge_tts_async(text, mp3, voice)))
+            if loop.is_running():
+                ok = asyncio.run(_synth_edge_tts_async(text, mp3, voice))
+            else:
+                ok = loop.run_until_complete(_synth_edge_tts_async(text, mp3, voice))
         except RuntimeError:
             ok = asyncio.run(_synth_edge_tts_async(text, mp3, voice))
+
         if not ok:
             return False
-        subprocess.run(["ffmpeg", "-y", "-i", mp3, out_wav],
-                       capture_output=True, check=True, timeout=30)
-        if os.path.exists(mp3):
-            os.remove(mp3)
-        return os.path.exists(out_wav) and os.path.getsize(out_wav) > 512
-    except Exception as e:
-        print(f"  ⚠ edge-tts ffmpeg: {e}"); return False
 
+        # Convert MP3 → WAV
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", mp3, out_wav],
+            capture_output=True, check=True, timeout=30,
+        )
+        return os.path.exists(out_wav) and os.path.getsize(out_wav) > 512
+
+    except Exception as e:
+        print(f"  ⚠ edge-tts ffmpeg conversion: {e}")
+        return False
+    finally:
+        if os.path.exists(mp3):
+            try:
+                os.remove(mp3)
+            except OSError:
+                pass
+
+
+# ── WAV utilities ─────────────────────────────────────────────────────────────
 
 def _wav_duration_ms(wav_path: str) -> float:
     """Return duration of a WAV file in milliseconds."""
@@ -235,6 +255,7 @@ def _wav_duration_ms(wav_path: str) -> float:
 
 
 def _concat_wavs(paths: list, out: str) -> bool:
+    """Concatenate a list of WAV files into a single output WAV."""
     frames, params = [], None
     for p in paths:
         if not os.path.exists(p) or os.path.getsize(p) < 100:
@@ -247,6 +268,7 @@ def _concat_wavs(paths: list, out: str) -> bool:
         except Exception:
             pass
     if not frames or params is None:
+        # Write a minimal silent WAV so downstream code never gets a missing file
         with wave.open(out, "w") as wf:
             wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(22050)
             wf.writeframes(b"\x00" * 22050)
@@ -295,7 +317,7 @@ def voice_cloning_synthesizer(input_data: Dict) -> Dict:
 
     char_meta_map = {c["name"]: c for c in characters}
 
-    # Assign a stable voice to every speaker appearing in this scene
+    # ── Assign a stable, unique voice to every speaker in this scene ──────────
     char_voice_params = {}
     for turn in dialogue:
         speaker = turn.get("speaker", "Narrator")
@@ -305,10 +327,10 @@ def voice_cloning_synthesizer(input_data: Dict) -> Dict:
         gender = _infer_gender(speaker, meta, all_scene_dialogs)
         params = _voice_params_for(speaker, gender)
         char_voice_params[speaker] = {"gender": gender, **params}
-        print(f"  🎤 {speaker} → {gender} | pitch={params['pitch']} speed={params['speed']}")
+        print(f"  🎤 {speaker} → {gender} | voice={params['edge_voice']}")
 
     line_wavs   = []
-    line_timing = []   # [{speaker, audio_file, start_ms, end_ms}]
+    line_timing = []   # [{speaker, line, audio_file, start_ms, end_ms}]
     cursor_ms   = 0.0
 
     for idx, turn in enumerate(dialogue):
@@ -316,30 +338,36 @@ def voice_cloning_synthesizer(input_data: Dict) -> Dict:
         line    = turn.get("line", "").strip() or "..."
         vp      = char_voice_params.get(
             speaker,
-            {"pitch": 50, "speed": 150,
-             "el_voice":   _EL_FEMALE_VOICES[0],
-             "edge_voice": _EDGE_FEMALE_VOICES[0]},
+            {
+                "pitch":      50,
+                "speed":      150,
+                "edge_voice": _EDGE_FEMALE_VOICES[0],
+            },
         )
 
         safe_spk = re.sub(r"[^A-Za-z0-9_]", "_", speaker)
-        lw = os.path.join(output_dir,
-                          f"scene_{scene_id:02d}_{safe_spk}_line_{idx:03d}.wav")
+        lw = os.path.join(
+            output_dir,
+            f"scene_{scene_id:02d}_{safe_spk}_line_{idx:03d}.wav",
+        )
 
-        ok = False
-        if ELEVENLABS_KEY:
-            ok = _synth_elevenlabs(line, vp["el_voice"], lw)
-        if not ok and HAS_EDGE_TTS:
-            ok = _synth_edge_tts(line, lw, vp["edge_voice"])
+        # ── Try edge-tts first, fall back to espeak-ng ────────────────────────
+        ok = _synth_edge_tts(line, lw, vp["edge_voice"])
         if not ok:
+            print(f"  ⚠ edge-tts failed for scene {scene_id} line {idx} "
+                  f"({speaker}) — falling back to espeak-ng")
             ok = _synth_espeak(line, lw, vp["pitch"], vp["speed"])
+
         if not ok:
-            # silent fallback proportional to line length
+            # Last-resort: silent WAV proportional to line length
+            print(f"  ⚠ All TTS backends failed for scene {scene_id} line {idx} "
+                  f"({speaker}) — writing silent placeholder")
             with wave.open(lw, "w") as wf:
                 wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(22050)
                 wf.writeframes(b"\x00" * int(22050 * max(0.5, len(line) * 0.05)))
 
-        dur_ms   = _wav_duration_ms(lw)
-        end_ms   = cursor_ms + dur_ms
+        dur_ms  = _wav_duration_ms(lw)
+        end_ms  = cursor_ms + dur_ms
         line_timing.append({
             "speaker":    speaker,
             "line":       line,
@@ -350,7 +378,7 @@ def voice_cloning_synthesizer(input_data: Dict) -> Dict:
         cursor_ms = end_ms
         line_wavs.append(lw)
 
-    # Concatenate all lines into one scene-level WAV
+    # ── Concatenate all per-line WAVs into one scene-level WAV ────────────────
     out_path = os.path.join(output_dir, f"scene_{scene_id:02d}.wav")
     _concat_wavs(line_wavs, out_path)
 
@@ -361,10 +389,12 @@ def voice_cloning_synthesizer(input_data: Dict) -> Dict:
         duration = cursor_ms / 1000.0
 
     genders_used = {s: p["gender"] for s, p in char_voice_params.items()}
-    method = ("elevenlabs" if ELEVENLABS_KEY
-              else ("edge-tts" if HAS_EDGE_TTS else "espeak-ng"))
+    voices_used  = {s: p["edge_voice"] for s, p in char_voice_params.items()}
+    method = "edge-tts" if HAS_EDGE_TTS else "espeak-ng"
+
     print(f"  🎙 [{method}] Scene {scene_id} → {out_path} "
           f"({duration:.1f}s | {genders_used})")
+    print(f"       voices assigned: {voices_used}")
 
     return {
         "scene_id":    scene_id,
@@ -372,8 +402,9 @@ def voice_cloning_synthesizer(input_data: Dict) -> Dict:
         "duration":    duration,
         "method":      method,
         "genders":     genders_used,
+        "voices":      voices_used,
         "line_wavs":   line_wavs,
-        "line_timing": line_timing,   # ← per-line timing entries
+        "line_timing": line_timing,
     }
 
 
