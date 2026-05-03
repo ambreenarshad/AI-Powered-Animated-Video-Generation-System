@@ -2,188 +2,123 @@
 """
 Compositor Agent
 ─────────────────
-Concatenates all merged scene clips with cross-dissolve transitions,
-optionally overlays subtitles (.srt), and writes the final MP4.
+Concatenates all merged scene clips into the final MP4.
 
-Transition: cross-dissolve via MoviePy's CompositeVideoClip + fade masks.
-Subtitles:  burned-in via FFmpeg (ImageMagick not required).
+Audio preservation:
+  Subtitles are already burned into each character's synced clip by
+  av_sync_agent, so this stage does NOT add any subtitle processing.
+
+  Scene clips are joined with FFmpeg's concat demuxer using "-c copy"
+  (stream copy) so no re-encoding occurs and no audio sync is disturbed.
+
+  MoviePy is NOT used here — it re-encodes every stream and would break
+  the audio sync that av_sync_agent carefully constructed.
 """
 
 import os
 import json
 import subprocess
+import shutil
 from pathlib import Path
-from typing import List, Dict, Any, Optional
-
-from moviepy.editor import (
-    VideoFileClip,
-    concatenate_videoclips,
-    CompositeVideoClip,
-)
-from moviepy.video.fx.fadein  import fadein
-from moviepy.video.fx.fadeout import fadeout
+from typing import List, Dict, Any
 
 FINAL_DIR = Path("outputs/video")
 FINAL_DIR.mkdir(parents=True, exist_ok=True)
 
-FINAL_OUTPUT  = str(FINAL_DIR / "final_output.mp4")
-SUBTITLE_FILE = str(FINAL_DIR / "subtitles.srt")
-TRANSITION_DURATION = 0.5  # seconds of cross-dissolve overlap
+FINAL_OUTPUT = str(FINAL_DIR / "final_output.mp4")
 
 
-# ---------------------------------------------------------------------------
-# Subtitle helpers
-# ---------------------------------------------------------------------------
+# ── FFprobe helper ────────────────────────────────────────────────────────────
 
-def _ms_to_srt_time(ms: int) -> str:
-    h   = ms // 3_600_000;  ms %= 3_600_000
-    m   = ms // 60_000;     ms %= 60_000
-    s   = ms // 1_000;      ms %= 1_000
-    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
-
-
-def _build_srt(task_graph: List[Dict]) -> str:
-    lines = []
-    idx   = 1
-    offset_ms = 0
-
-    for task in task_graph:
-        if task["status"] == "error":
-            offset_ms += int(task["duration_sec"] * 1000)
-            continue
-
-        for dlg in task.get("dialogue", []):
-            speaker = dlg.get("speaker", "")
-            line    = dlg.get("line", "").strip()
-            if not line:
-                continue
-
-            scene_dur_ms = int(task["duration_sec"] * 1000)
-            n_lines      = max(len(task.get("dialogue", [])), 1)
-            slot         = scene_dur_ms // n_lines
-            di           = task["dialogue"].index(dlg)
-            start_ms     = offset_ms + di * slot
-            end_ms       = start_ms + max(slot - 200, 500)
-
-            lines.append(str(idx))
-            lines.append(f"{_ms_to_srt_time(start_ms)} --> {_ms_to_srt_time(end_ms)}")
-            lines.append(f"{speaker}: {line}")
-            lines.append("")
-            idx += 1
-
-        offset_ms += int(task["duration_sec"] * 1000)
-
-    return "\n".join(lines)
-
-
-# ---------------------------------------------------------------------------
-# Transition helper
-# ---------------------------------------------------------------------------
-
-def _crossfade_concat(clips: List[VideoFileClip], td: float) -> VideoFileClip:
-    """
-    Concatenate clips with cross-dissolve transitions.
-    """
-    if len(clips) == 1:
-        return clips[0]
-
-    result = clips[0]
-    for next_clip in clips[1:]:
-        result = concatenate_videoclips(
-            [result.fx(fadeout, td), next_clip.fx(fadein, td)],
-            method="compose",
-            padding=-td,
+def _probe_duration(path: str) -> float:
+    try:
+        r = subprocess.run(
+            ["ffprobe", "-v", "error",
+             "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1",
+             path],
+            capture_output=True, text=True, timeout=30,
         )
-    return result
+        val = r.stdout.strip()
+        return float(val) if val else 0.0
+    except Exception:
+        return 0.0
 
 
-# ---------------------------------------------------------------------------
-# FFmpeg subtitle burn-in
-# ---------------------------------------------------------------------------
+# ── Stream-copy concat ────────────────────────────────────────────────────────
 
-def _burn_subtitles(input_mp4: str, srt_path: str, output_mp4: str) -> str:
-    srt_escaped = srt_path.replace("\\", "/").replace(":", "\\:")
+def _stream_copy_concat(clip_paths: list[str], out_path: str) -> bool:
+    """
+    Concatenate scene clips with no re-encoding.
+    All audio sync already embedded; just mux into one container.
+    """
+    if len(clip_paths) == 1:
+        shutil.copy(clip_paths[0], out_path)
+        return True
+
+    tmp_list = str(FINAL_DIR / "_scene_list.txt")
+    with open(tmp_list, "w") as f:
+        for p in clip_paths:
+            f.write(f"file '{os.path.abspath(p)}'\n")
+
     cmd = [
         "ffmpeg", "-y",
-        "-i", input_mp4,
-        "-vf", f"subtitles='{srt_escaped}':force_style='FontSize=18,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2'",
-        "-c:a", "copy",
-        "-preset", "fast",
-        output_mp4,
+        "-f",    "concat",
+        "-safe", "0",
+        "-i",    tmp_list,
+        "-c",    "copy",          # stream copy — no re-encode
+        "-movflags", "+faststart",
+        out_path,
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, timeout=600)
+
+    try:
+        os.remove(tmp_list)
+    except OSError:
+        pass
+
     if result.returncode != 0:
-        raise RuntimeError(f"FFmpeg subtitle burn failed:\n{result.stderr}")
-    return output_mp4
+        print(f"  ❌ Stream-copy concat failed:\n{result.stderr.decode()[-400:]}")
+        return False
+    return True
 
 
-# ---------------------------------------------------------------------------
-# Agent
-# ---------------------------------------------------------------------------
+# ── Agent ─────────────────────────────────────────────────────────────────────
 
 def compositor_agent(state: dict) -> dict:
-    print("[Phase 3 · Compositor Agent] Compositing final video…")
+    print("[Phase 3 · Compositor Agent] Compositing final video (stream copy, no re-encode)…")
 
     task_graph: List[Dict[str, Any]] = state["task_graph"]
-    enable_subtitles: bool           = state.get("enable_subtitles", True)
 
-    # ── Collect merged scene clips in order ───────────────────────────────
-    # scene_merge_agent sets task["merged_clip"]; fall back to synced_clip
-    # only if merged_clip is absent (e.g. single-character scenes that
-    # were never passed through scene_merge).
-    clips: List[VideoFileClip] = []
+    # ── Collect merged scene clips in scene_id order ──────────────────────────
+    clip_paths: list[str] = []
     for task in sorted(task_graph, key=lambda t: t["scene_id"]):
+        # merged_clip is set by scene_merge_agent; synced_clip is a legacy fallback
         clip_path = task.get("merged_clip") or task.get("synced_clip")
         if clip_path and os.path.exists(clip_path):
-            clip = VideoFileClip(clip_path)
-            clips.append(clip)
-            print(f"  ← Scene {task['scene_id']}: {clip_path}")
+            clip_paths.append(clip_path)
+            dur = _probe_duration(clip_path)
+            print(f"  ← Scene {task['scene_id']}: {os.path.basename(clip_path)}  [{dur:.1f}s]")
         else:
-            print(f"  ⚠️  Scene {task['scene_id']}: no merged/synced clip, skipping.")
+            print(f"  ⚠️  Scene {task['scene_id']}: no merged/synced clip found — skipping.")
 
-    if not clips:
+    if not clip_paths:
         return {**state, "status": "error",
                 "error": "No scene clips available for compositing."}
 
-    # ── Concatenate with cross-dissolve ───────────────────────────────────
-    print("  Applying cross-dissolve transitions…")
-    final_clip = _crossfade_concat(clips, TRANSITION_DURATION)
+    # ── Concatenate with stream copy ──────────────────────────────────────────
+    print(f"  Concatenating {len(clip_paths)} scene clip(s) → {FINAL_OUTPUT}")
+    success = _stream_copy_concat(clip_paths, FINAL_OUTPUT)
 
-    intermediate = str(FINAL_DIR / "_intermediate.mp4")
-    final_clip.write_videofile(
-        intermediate,
-        codec="libx264",
-        audio_codec="aac",
-        fps=24,
-        preset="fast",
-        logger=None,
-    )
-    final_clip.close()
-    for c in clips:
-        c.close()
+    if not success or not os.path.exists(FINAL_OUTPUT):
+        return {**state, "status": "error",
+                "error": "Final concat failed — see log above."}
 
-    # ── Subtitle burn-in ──────────────────────────────────────────────────
-    output_path = FINAL_OUTPUT
-    subtitle_path: Optional[str] = None
+    final_sz  = os.path.getsize(FINAL_OUTPUT) // (1024 * 1024)
+    final_dur = _probe_duration(FINAL_OUTPUT)
+    print(f"  ✅ Final video: {FINAL_OUTPUT}  [{final_dur:.1f}s, {final_sz} MB]")
 
-    if enable_subtitles:
-        print("  Generating .srt subtitles…")
-        srt_content = _build_srt(task_graph)
-        with open(SUBTITLE_FILE, "w", encoding="utf-8") as f:
-            f.write(srt_content)
-        subtitle_path = SUBTITLE_FILE
-
-        try:
-            print("  Burning subtitles via FFmpeg…")
-            output_path = _burn_subtitles(intermediate, SUBTITLE_FILE, FINAL_OUTPUT)
-            os.remove(intermediate)
-        except Exception as e:
-            print(f"  ⚠️  Subtitle burn failed ({e}); using video without subtitles.")
-            os.rename(intermediate, FINAL_OUTPUT)
-    else:
-        os.rename(intermediate, FINAL_OUTPUT)
-
-    # ── Save task log ─────────────────────────────────────────────────────
+    # ── Save task log ─────────────────────────────────────────────────────────
     log_path = "outputs/logs/phase3_task_log.json"
     os.makedirs("outputs/logs", exist_ok=True)
     with open(log_path, "w") as f:
@@ -194,15 +129,22 @@ def compositor_agent(state: dict) -> dict:
                 "merged_clip": t.get("merged_clip"),
                 "synced_clip": t.get("synced_clip"),
                 "error":       t.get("error"),
+                "character_subtitles": [
+                    {
+                        "character": c.get("character_name"),
+                        "subtitle_path": c.get("subtitle_path"),
+                    }
+                    for c in t.get("character_clips", [])
+                ],
             }
             for t in task_graph
         ], f, indent=2)
 
-    print(f"[Phase 3 · Compositor Agent] ✅ Final video: {output_path}")
+    print(f"[Phase 3 · Compositor Agent] ✅ Final video: {FINAL_OUTPUT}")
     return {
         **state,
-        "final_output":  output_path,
-        "subtitle_file": subtitle_path,
+        "final_output":  FINAL_OUTPUT,
+        "subtitle_file": None,   # subtitles are burned per-character, not a separate file
         "status":        "complete",
         "task_log":      state.get("task_log", []) + [{"phase3_log": log_path}],
     }

@@ -4,15 +4,19 @@ agents3/scene_merge_agent.py
 Merges all per-character synced clips for each scene into a single scene video.
 
 Strategy per scene:
-  • 1 character  → copy that clip directly (no composite needed)
-  • 2+ characters → interleave clips in dialogue order with 0.25s cross-dissolves
+  • 1 character  → copy that clip directly (no re-encode needed)
+  • 2+ characters → concatenate clips in dialogue order
+
+IMPORTANT — Audio preservation:
+  All clips arriving here already have their audio correctly synced by
+  av_sync_agent. This stage does NOT touch or re-encode audio in any way.
+  It uses FFmpeg's concat demuxer with "-c copy" so every stream is passed
+  through bit-for-bit. No xfade/acrossfade filters are applied because those
+  require re-encoding and can break the existing sync.
 
 Clip resolution priority per character:
-  1. clip["synced_path"]   — audio-attached clip in outputs/video/synced/
+  1. clip["synced_path"]    — audio-attached clip in outputs/video/synced/
   2. clip["raw_video_path"] — original clip from outputs/clips/
-
-Duplicates (same character appearing more than once in character_clips) are
-collapsed to a single entry so each character appears exactly once per scene.
 
 Output: outputs/video/scenes/scene_XX_merged.mp4
 """
@@ -30,8 +34,6 @@ if TYPE_CHECKING:
 
 SCENES_DIR = Path("outputs/video/scenes")
 SCENES_DIR.mkdir(parents=True, exist_ok=True)
-
-CROSSFADE_DUR = 0.25   # seconds of cross-dissolve between character shots
 
 
 # ── FFprobe helper ────────────────────────────────────────────────────────────
@@ -72,9 +74,6 @@ def _dialogue_ordered_clips(task: dict) -> list[str]:
     """
     Return one clip path per *unique* character, ordered by each character's
     first dialogue start_ms so the video follows the actual conversation flow.
-
-    If the same character appears more than once in character_clips (manifest
-    duplication bug), only the first valid entry is kept.
     """
     char_clips = task.get("character_clips", [])
 
@@ -84,8 +83,6 @@ def _dialogue_ordered_clips(task: dict) -> list[str]:
             return min(l.get("start_ms", 999_999_999) for l in lines)
         return 999_999_999
 
-    # Deduplicate: keep first occurrence of each character name that has a
-    # usable video file.
     seen_names: set[str] = set()
     unique_valid: list[dict] = []
     for clip in char_clips:
@@ -98,105 +95,58 @@ def _dialogue_ordered_clips(task: dict) -> list[str]:
             unique_valid.append(clip)
 
     ordered = sorted(unique_valid, key=_first_start)
-
     paths = [_best_clip_path(c) for c in ordered]
-    return [p for p in paths if p]  # filter out any None that slipped through
+    return [p for p in paths if p]
 
 
-# ── Simple concat (no transitions) ───────────────────────────────────────────
+# ── Stream-copy concat (no re-encode, audio preserved exactly) ───────────────
 
-def _simple_concat(clip_paths: list[str], out_path: Path) -> bool:
+def _stream_copy_concat(clip_paths: list[str], out_path: Path) -> bool:
+    """
+    Concatenate clips using FFmpeg's concat demuxer with stream copy.
+    This is a pure mux operation — no audio or video re-encoding occurs,
+    so the sync already baked in by av_sync_agent is preserved perfectly.
+
+    Requirement: all clips must have the same codec, resolution, and frame rate.
+    av_sync_agent outputs libx264/aac at 1280x720 so this is always satisfied.
+    """
+    if len(clip_paths) == 1:
+        shutil.copy(clip_paths[0], out_path)
+        return True
+
     list_file = out_path.parent / f"_concat_{out_path.stem}.txt"
     with open(list_file, "w") as f:
         for p in clip_paths:
+            # Use absolute paths to be safe with FFmpeg's safe=0
             f.write(f"file '{os.path.abspath(p)}'\n")
 
     cmd = [
         "ffmpeg", "-y",
-        "-f", "concat", "-safe", "0",
-        "-i", str(list_file),
-        "-c:v", "libx264", "-pix_fmt", "yuv420p",
-        "-c:a", "aac", "-b:a", "192k",
+        "-f",    "concat",
+        "-safe", "0",
+        "-i",    str(list_file),
+        # Stream copy — do NOT re-encode anything
+        "-c",    "copy",
         "-movflags", "+faststart",
         str(out_path),
     ]
     r = subprocess.run(cmd, capture_output=True, timeout=600)
+
     try:
         list_file.unlink()
     except OSError:
         pass
+
     if r.returncode != 0:
-        print(f"    ❌ Simple concat failed: {r.stderr.decode()[-200:]}")
+        print(f"    ❌ Stream-copy concat failed:\n{r.stderr.decode()[-300:]}")
         return False
-    return True
-
-
-# ── Xfade concat (with cross-dissolve) ───────────────────────────────────────
-
-def _xfade_concat(clip_paths: list[str], out_path: Path) -> bool:
-    """Concatenate clips with xfade cross-dissolve between each pair."""
-    n = len(clip_paths)
-
-    if n == 0:
-        return False
-    if n == 1:
-        shutil.copy(clip_paths[0], out_path)
-        return True
-
-    durations = [_probe_duration(p) for p in clip_paths]
-    td = CROSSFADE_DUR
-
-    # Build FFmpeg input args
-    inputs: list[str] = []
-    for p in clip_paths:
-        inputs += ["-i", p]
-
-    # Build filter_complex chain
-    fc_parts: list[str] = []
-    prev_v = "[0:v]"
-    prev_a = "[0:a]"
-
-    for i in range(1, n):
-        offset = max(sum(durations[:i]) - td * i, 0.01)
-        out_v  = f"[xv{i}]"
-        out_a  = f"[xa{i}]"
-        fc_parts.append(
-            f"{prev_v}[{i}:v]xfade=transition=fade:"
-            f"duration={td:.3f}:offset={offset:.3f}{out_v}"
-        )
-        fc_parts.append(
-            f"{prev_a}[{i}:a]acrossfade=d={td:.3f}{out_a}"
-        )
-        prev_v = out_v
-        prev_a = out_a
-
-    fc = ";".join(fc_parts)
-    cmd = (
-        ["ffmpeg", "-y"]
-        + inputs
-        + [
-            "-filter_complex", fc,
-            "-map", prev_v,
-            "-map", prev_a,
-            "-c:v", "libx264", "-pix_fmt", "yuv420p",
-            "-c:a", "aac", "-b:a", "192k",
-            "-movflags", "+faststart",
-            str(out_path),
-        ]
-    )
-
-    r = subprocess.run(cmd, capture_output=True, timeout=600)
-    if r.returncode != 0:
-        print(f"    ⚠  xfade concat failed — trying simple concat")
-        print(f"    stderr: {r.stderr.decode()[-200:]}")
-        return _simple_concat(clip_paths, out_path)
     return True
 
 
 # ── Agent ─────────────────────────────────────────────────────────────────────
 
 def scene_merge_agent(state: "Phase3State") -> "Phase3State":
-    print("\n[Phase3][SceneMerge] Merging character clips into scene videos…")
+    print("\n[Phase3][SceneMerge] Merging character clips into scene videos (stream copy)…")
 
     task_graph = state["task_graph"]
     ok_count   = 0
@@ -225,7 +175,7 @@ def scene_merge_agent(state: "Phase3State") -> "Phase3State":
             err_count += 1
             continue
 
-        # Log which clips (and their sources) are being merged
+        # Log which clips are being merged and their audio source
         char_labels = []
         seen_for_log: set[str] = set()
         for clip in task.get("character_clips", []):
@@ -234,17 +184,19 @@ def scene_merge_agent(state: "Phase3State") -> "Phase3State":
                 continue
             p = _best_clip_path(clip)
             if p:
-                src = "synced" if clip.get("synced_path") and os.path.exists(clip["synced_path"]) else "raw"
+                src = "synced" if (
+                    clip.get("synced_path") and os.path.exists(clip["synced_path"])
+                ) else "raw"
                 char_labels.append(f"{name}({src})")
                 seen_for_log.add(name)
 
-        print(f"  [Scene {sid}] Merging {len(clip_paths)} clip(s): "
+        print(f"  [Scene {sid}] Stream-copy concat of {len(clip_paths)} clip(s): "
               + ", ".join(char_labels))
 
         try:
-            success = _xfade_concat(clip_paths, out_path)
+            success = _stream_copy_concat(clip_paths, out_path)
 
-            if success and out_path.exists() and out_path.stat().st_size > 1000:
+            if success and out_path.exists() and out_path.stat().st_size > 1_000:
                 task["merged_clip"] = str(out_path)
                 task["status"]      = "merged"
                 dur = _probe_duration(str(out_path))
@@ -256,7 +208,7 @@ def scene_merge_agent(state: "Phase3State") -> "Phase3State":
 
         except Exception as exc:
             print(f"  ❌ Scene {sid} merge failed: {exc}")
-            # Last resort: copy the first available clip
+            # Last resort: copy the first available clip unchanged
             if clip_paths:
                 shutil.copy(clip_paths[0], out_path)
                 task["merged_clip"] = str(out_path)
