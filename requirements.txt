@@ -7,6 +7,7 @@ groq>=0.5.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 numpy>=1.24.0
+sentence-transformers>=2.2.0
 
 # ── Phase 2 additional deps ───────────────────────────────────────────────────
 # Core audio/video processing
@@ -15,7 +16,7 @@ numpy>=1.24.0
 
 # Optional: Real TTS (ElevenLabs)
 # elevenlabs>=1.0.0           # pip install elevenlabs
-# edge-tts>=6.1.9           # pip install edge-tts
+edge-tts>=6.1.9           # pip install edge-tts
 # Optional: Real stock footage
 # pexels-api                  # set PEXELS_API_KEY in .env
 
