@@ -1,0 +1,23 @@
+1
+00:00:00,000 --> 00:00:02,452
+Jack: We need to get in and out, no more than 10 minutes.
+
+2
+00:00:02,652 --> 00:00:05,104
+Sarah: I've got the security codes, but we still need to disable the cameras.
+
+3
+00:00:05,304 --> 00:00:07,804
+Sarah: Are you sure this is the right time? The streets are still crowded.
+
+4
+00:00:08,004 --> 00:00:10,504
+Jack: It's the perfect distraction. No one will notice us in this chaos.
+
+5
+00:00:10,704 --> 00:00:13,288
+Jack: Now, let's get to work. We have 5 minutes before the guards make their rounds.
+
+6
+00:00:13,488 --> 00:00:16,072
+Sarah: I've got the display case open. Let's move, let's move!

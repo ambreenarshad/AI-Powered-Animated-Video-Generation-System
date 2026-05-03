@@ -13,6 +13,8 @@ import sys
 import queue
 import os
 
+from phase3_panel import Phase3Panel
+
 
 # ── Stdout redirect ───────────────────────────────────────────────────────────
 class QueueStream:
@@ -102,7 +104,8 @@ class App(tk.Tk):
         # One log queue per phase so stdout is broadcast to both
         self._q1 = queue.Queue()
         self._q2 = queue.Queue()
-        sys.stdout = QueueStream([self._q1, self._q2])
+        self._q3 = queue.Queue()
+        sys.stdout = QueueStream([self._q1, self._q2, self._q3])
 
         self._build_fonts()
         self._build_chrome()
@@ -110,8 +113,10 @@ class App(tk.Tk):
         # Instantiate phase panels inside their tabs
         self.p1 = Phase1Panel(self.tab1, self._q1, self.f)
         self.p2 = Phase2Panel(self.tab2, self._q2, self.f)
+        self.p3 = Phase3Panel(self.tab3, self._q3, self.f)
         self.p1.pack(fill="both", expand=True)
         self.p2.pack(fill="both", expand=True)
+        self.p3.pack(fill="both", expand=True)
 
     def _build_fonts(self):
         self.f = fonts = {}
@@ -143,6 +148,7 @@ class App(tk.Tk):
         tab_defs = [
             ("  PHASE 1  ·  Story Generation  ", 0),
             ("  PHASE 2  ·  Audio Synthesis   ", 1),
+            ("  PHASE 3  ·  Video Creation     ", 2),
         ]
 
         for label, idx in tab_defs:
@@ -164,6 +170,7 @@ class App(tk.Tk):
         # ── Tab content frames ─────────────────────────────────────────────────
         self.tab1 = tk.Frame(self, bg=BG)
         self.tab2 = tk.Frame(self, bg=BG)
+        self.tab3 = tk.Frame(self, bg=BG)
         self.tab1.pack(fill="both", expand=True)
         # tab2 starts hidden
 
@@ -171,7 +178,7 @@ class App(tk.Tk):
 
     def _switch_tab(self, idx: int):
         self._active_tab.set(idx)
-        tabs = [self.tab1, self.tab2]
+        tabs = [self.tab1, self.tab2, self.tab3]
 
         for i, (btn, tab) in enumerate(zip(self._tab_btns, tabs)):
             if i == idx:
