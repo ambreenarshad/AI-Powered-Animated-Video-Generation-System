@@ -5,8 +5,8 @@ Phase 3 Panel  —  Per-Character Video Generation & Composition
 
 Stages:
   1. Manifest Loader
-  2. Image Gen (Qwen)
-  3. Video Gen (Wan2.6-I2V)
+  2. Image Gen (wan2.5-t2i-preview)
+  3. Video Gen (wan2.7-i2v)
   4. A/V Sync
   5. Scene Merge
   6. Compositor
@@ -17,6 +17,13 @@ import queue
 import threading
 import tkinter as tk
 from tkinter import filedialog, scrolledtext
+
+# Load .env BEFORE reading any env vars so the key is available immediately
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv optional; user can still paste the key manually
 
 # ── Colour palette (mirrors main.py) ──────────────────────────────────────────
 BG     = "#0f0f0f"
@@ -32,23 +39,31 @@ RED    = "#c94c4c"
 BLUE   = "#4c8caf"
 WHITE  = "#f5f0e8"
 
+# Current model IDs — update this block whenever models change
+_IMAGE_MODEL = "wan2.5-t2i-preview"
+_VIDEO_MODEL = "wan2.7-i2v-2026-04-25"
+_MODEL_INFO  = f"Image: {_IMAGE_MODEL}  ·  Video: {_VIDEO_MODEL}"
+
+# Stage labels must stay in sync with _STAGE_MAP in _patch_agents()
+_STAGES = [
+    "Manifest Loader",
+    f"Image Gen ({_IMAGE_MODEL})",
+    f"Video Gen ({_VIDEO_MODEL})",
+    "A/V Sync",
+    "Scene Merge",
+    "Compositor",
+]
+
 
 class Phase3Panel(tk.Frame):
     """Full Phase 3 UI panel — per-character video generation."""
-
-    STAGES = [
-        "Manifest Loader",
-        "Image Gen (Qwen)",
-        "Video Gen (Wan2.6-I2V)",
-        "A/V Sync",
-        "Scene Merge",
-        "Compositor",
-    ]
 
     def __init__(self, parent, log_queue: queue.Queue, fonts: dict):
         super().__init__(parent, bg=BG)
         self.f          = fonts
         self._log_queue = log_queue
+        # Expose stage list as instance attribute so _patch_agents() can read it
+        self.STAGES = _STAGES
         self._build_ui()
         self._poll_log()
 
@@ -114,19 +129,37 @@ class Phase3Panel(tk.Frame):
             key_row, text="DASHSCOPE_API_KEY", font=self.f["small"],
             fg=MUTED, bg=BG, width=26, anchor="w",
         ).grid(row=0, column=0)
-        self._api_key_var = tk.StringVar(value=os.getenv("DASHSCOPE_API_KEY", ""))
+
+        # Read key now — dotenv was loaded at module import, so this will
+        # pick up the value from .env without any manual entry needed.
+        _env_key = os.getenv("DASHSCOPE_API_KEY", "")
+        self._api_key_var = tk.StringVar(value=_env_key)
         tk.Entry(
             key_row, textvariable=self._api_key_var, font=self.f["body"],
             bg=BG3, fg=CREAM, insertbackground=GOLD,
             show="*", relief="flat", bd=4,
         ).grid(row=0, column=1, sticky="ew")
 
-        # ── Model info labels ─────────────────────────────────────────────────
+        # Small indicator showing whether the key came from the environment
+        self._key_src_var = tk.StringVar(
+            value="(loaded from .env)" if _env_key else "(not set — enter manually)"
+        )
+        tk.Label(
+            key_row, textvariable=self._key_src_var,
+            font=self.f["small"],
+            fg=GREEN if _env_key else RED,
+            bg=BG,
+        ).grid(row=0, column=2, padx=(8, 0))
+
+        # Update the indicator whenever the user edits the field
+        self._api_key_var.trace_add("write", self._on_key_changed)
+
+        # ── Model info label (always reflects actual model IDs) ───────────────
         info_row = tk.Frame(left, bg=BG)
         info_row.grid(row=row_start + 1, column=0, sticky="w", pady=(4, 0))
         tk.Label(
             info_row,
-            text="Image: Qwen-Image-2.0-Pro  ·  Video: Wan2.6-I2V",
+            text=_MODEL_INFO,
             font=self.f["small"], fg=BLUE, bg=BG,
         ).pack(side="left")
 
@@ -228,6 +261,14 @@ class Phase3Panel(tk.Frame):
     # Helpers
     # ──────────────────────────────────────────────────────────────────────────
 
+    def _on_key_changed(self, *_):
+        """Update the source indicator when the user edits the key field."""
+        val = self._api_key_var.get()
+        if val:
+            self._key_src_var.set("(set)")
+        else:
+            self._key_src_var.set("(not set)")
+
     def _browse(self, label: str, var: tk.StringVar):
         if label == "audio_dir":
             path = filedialog.askdirectory()
@@ -251,7 +292,7 @@ class Phase3Panel(tk.Frame):
                     "green" if "✅" in msg else
                     "red"   if "❌" in msg else
                     "gold"  if "[Phase3]" in msg or "[Phase 3" in msg else
-                    "blue"  if "Qwen" in msg or "Wan2" in msg else
+                    "blue"  if "wan2" in msg.lower() or "t2i" in msg.lower() else
                     "dim"   if msg.startswith("  →") or msg.startswith("    ") else
                     None
                 )
@@ -261,6 +302,7 @@ class Phase3Panel(tk.Frame):
         self.after(100, self._poll_log)
 
     def _set_stage(self, name: str, state: str):
+        # Match by substring so partial names still resolve
         entry = next(
             ((k, v) for k, v in self.stage_labels.items()
              if name.lower() in k.lower()),
@@ -324,7 +366,6 @@ class Phase3Panel(tk.Frame):
                 "audio_dir":            config["audio_dir"],
                 "dashscope_api_key":    config["dashscope_api_key"],
                 "enable_subtitles":     config["enable_subtitles"],
-                # runtime-filled fields
                 "scenes":          [],
                 "characters":      [],
                 "timing_manifest": [],
@@ -362,10 +403,12 @@ class Phase3Panel(tk.Frame):
 
         app = self
 
+        # Keys must match the *prefix* of a stage label for _set_stage() to
+        # find them via substring search.
         _STAGE_MAP = {
             "manifest_loader_agent": "Manifest Loader",
-            "image_gen_agent":       "Image Gen (Qwen)",
-            "ken_burns_agent":       "Video Gen (Wan2.6-I2V)",
+            "image_gen_agent":       "Image Gen",
+            "ken_burns_agent":       "Video Gen",
             "av_sync_agent":         "A/V Sync",
             "scene_merge_agent":     "Scene Merge",
             "compositor_agent":      "Compositor",

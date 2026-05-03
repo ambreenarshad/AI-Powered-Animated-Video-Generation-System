@@ -96,17 +96,33 @@ def manifest_loader_agent(state: "Phase3State") -> "Phase3State":
 
     for scene in scenes:
         sid        = scene["scene_id"]
-        characters = scene.get("characters", [])
         dialogue   = scene.get("dialogue", [])
+
+        # Deduplicate characters — preserve first-seen order, ignore duplicates.
+        # The scene manifest sometimes lists the same name twice (e.g. once in
+        # "characters" and once derived from dialogue speakers).
+        seen_chars: set[str] = set()
+        unique_characters: list[str] = []
+        for name in scene.get("characters", []):
+            if name and name not in seen_chars:
+                seen_chars.add(name)
+                unique_characters.append(name)
+
+        # Also collect any speakers from dialogue that weren't in characters[]
+        for dlg in dialogue:
+            sp = dlg.get("speaker", "").strip()
+            if sp and sp not in seen_chars:
+                seen_chars.add(sp)
+                unique_characters.append(sp)
 
         # Scene timing from manifest
         st = scene_timing.get(sid, {"start_ms": 0, "end_ms": 5000})
         scene_dur = max((st["end_ms"] - st["start_ms"]) / 1000.0, 3.0)
 
-        # ── Build CharacterClip list ──────────────────────────────────────────
+        # ── Build CharacterClip list (one entry per unique character) ─────────
         character_clips: list[dict] = []
 
-        for char_name in characters:
+        for char_name in unique_characters:
             char_info = char_map.get(char_name, {})
 
             # Collect timing entries for this character in this scene
@@ -174,19 +190,20 @@ def manifest_loader_agent(state: "Phase3State") -> "Phase3State":
         task: dict = {
             "scene_id":        sid,
             "location":        scene.get("location", ""),
-            "characters":      characters,
+            "characters":      unique_characters,
             "dialogue":        dialogue,
             "duration_sec":    scene_dur,
             "start_ms":        st["start_ms"],
             "end_ms":          st["end_ms"],
             "character_clips": character_clips,
             "merged_clip":     None,
+            "synced_clip":     None,
             "status":          "pending",
             "error":           None,
         }
         task_graph.append(task)
         print(f"  ✅ Scene {sid}: '{scene.get('location','')}' "
-              f"| {len(characters)} character(s) | {scene_dur:.1f}s")
+              f"| {len(unique_characters)} unique character(s) | {scene_dur:.1f}s")
 
     total_clips = sum(len(t["character_clips"]) for t in task_graph)
     print(f"\n[Phase3][ManifestLoader] ✅ {len(task_graph)} scenes, "

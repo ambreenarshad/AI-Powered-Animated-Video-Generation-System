@@ -19,9 +19,7 @@ env/
 .venv/
 
 # Generated outputs (keep structure, ignore content)
-outputs/audio/*.wav
-outputs/logs/
-outputs/*.json
+outputs/
 
 memory_db/
 memory_db/*.sqlite3

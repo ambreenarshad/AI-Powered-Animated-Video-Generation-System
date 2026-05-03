@@ -7,7 +7,13 @@ Strategy per scene:
   • 1 character  → copy that clip directly (no composite needed)
   • 2+ characters → interleave clips in dialogue order with 0.25s cross-dissolves
 
-The merged clip contains audio from all characters in their correct time slots.
+Clip resolution priority per character:
+  1. clip["synced_path"]   — audio-attached clip in outputs/video/synced/
+  2. clip["raw_video_path"] — original clip from outputs/clips/
+
+Duplicates (same character appearing more than once in character_clips) are
+collapsed to a single entry so each character appears exactly once per scene.
+
 Output: outputs/video/scenes/scene_XX_merged.mp4
 """
 
@@ -45,12 +51,30 @@ def _probe_duration(path: str) -> float:
         return 5.0
 
 
-# ── Clip ordering ─────────────────────────────────────────────────────────────
+# ── Best clip path for a character clip dict ──────────────────────────────────
+
+def _best_clip_path(clip: dict) -> str | None:
+    """
+    Return the best available video path for this character clip.
+    Preference: synced_path > raw_video_path.
+    Returns None if neither exists on disk.
+    """
+    for key in ("synced_path", "raw_video_path"):
+        p = clip.get(key, "")
+        if p and os.path.exists(p):
+            return p
+    return None
+
+
+# ── Clip ordering + deduplication ─────────────────────────────────────────────
 
 def _dialogue_ordered_clips(task: dict) -> list[str]:
     """
-    Return synced clip paths ordered by each character's first dialogue
-    start_ms so the video follows the actual conversation flow.
+    Return one clip path per *unique* character, ordered by each character's
+    first dialogue start_ms so the video follows the actual conversation flow.
+
+    If the same character appears more than once in character_clips (manifest
+    duplication bug), only the first valid entry is kept.
     """
     char_clips = task.get("character_clips", [])
 
@@ -60,12 +84,23 @@ def _dialogue_ordered_clips(task: dict) -> list[str]:
             return min(l.get("start_ms", 999_999_999) for l in lines)
         return 999_999_999
 
-    valid_clips = [
-        c for c in char_clips
-        if c.get("synced_path") and os.path.exists(c.get("synced_path", ""))
-    ]
-    ordered = sorted(valid_clips, key=_first_start)
-    return [c["synced_path"] for c in ordered]
+    # Deduplicate: keep first occurrence of each character name that has a
+    # usable video file.
+    seen_names: set[str] = set()
+    unique_valid: list[dict] = []
+    for clip in char_clips:
+        name = clip.get("character_name", "")
+        if name in seen_names:
+            continue
+        path = _best_clip_path(clip)
+        if path:
+            seen_names.add(name)
+            unique_valid.append(clip)
+
+    ordered = sorted(unique_valid, key=_first_start)
+
+    paths = [_best_clip_path(c) for c in ordered]
+    return [p for p in paths if p]  # filter out any None that slipped through
 
 
 # ── Simple concat (no transitions) ───────────────────────────────────────────
@@ -180,19 +215,31 @@ def scene_merge_agent(state: "Phase3State") -> "Phase3State":
             ok_count += 1
             continue
 
-        # Gather synced clips ordered by dialogue timing
+        # Gather deduplicated, dialogue-ordered clip paths
         clip_paths = _dialogue_ordered_clips(task)
 
         if not clip_paths:
-            print(f"  ⚠  Scene {sid}: no synced clips available")
+            print(f"  ⚠  Scene {sid}: no valid clips available")
             task["status"] = "error"
-            task["error"]  = "No synced character clips found"
+            task["error"]  = "No valid character clips found"
             err_count += 1
             continue
 
-        char_names = [Path(p).stem.split("_synced")[0] for p in clip_paths]
+        # Log which clips (and their sources) are being merged
+        char_labels = []
+        seen_for_log: set[str] = set()
+        for clip in task.get("character_clips", []):
+            name = clip.get("character_name", "")
+            if name in seen_for_log:
+                continue
+            p = _best_clip_path(clip)
+            if p:
+                src = "synced" if clip.get("synced_path") and os.path.exists(clip["synced_path"]) else "raw"
+                char_labels.append(f"{name}({src})")
+                seen_for_log.add(name)
+
         print(f"  [Scene {sid}] Merging {len(clip_paths)} clip(s): "
-              + ", ".join(char_names))
+              + ", ".join(char_labels))
 
         try:
             success = _xfade_concat(clip_paths, out_path)
