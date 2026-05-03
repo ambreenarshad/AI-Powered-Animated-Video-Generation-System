@@ -1,6 +1,6 @@
 """
 PROJECT MONTAGE — Unified Launcher
-Tabs: Phase 1 (Story Generation) · Phase 2 (Audio Synthesis)
+Tabs: Phase 1 (Story Generation) · Phase 2 (Audio Synthesis) · Phase 3 (Video Generation)
 Cinematic noir aesthetic throughout.
 """
 
@@ -19,12 +19,14 @@ from phase3_panel import Phase3Panel
 # ── Stdout redirect ───────────────────────────────────────────────────────────
 class QueueStream:
     def __init__(self, queues):
-        self.queues = queues          # list of queues to broadcast to
-        self._orig = sys.__stdout__
+        self.queues = queues
+        self._orig  = sys.__stdout__
+
     def write(self, text):
         if text.strip():
             for q in self.queues:
                 q.put(text)
+
     def flush(self):
         pass
 
@@ -57,8 +59,12 @@ def parse_raw_script_to_json(raw_text: str) -> dict:
         if m:
             if current_scene:
                 scenes.append(current_scene)
-            current_scene = {"scene_id": int(m.group(1)), "location": m.group(2).strip(),
-                             "characters": [], "dialogue": []}
+            current_scene = {
+                "scene_id": int(m.group(1)),
+                "location": m.group(2).strip(),
+                "characters": [],
+                "dialogue": [],
+            }
             last_dialogue = None
             continue
         if ":" in line and not line.startswith("[") and current_scene:
@@ -101,7 +107,6 @@ class App(tk.Tk):
         self.minsize(980, 720)
         self.configure(bg=BG)
 
-        # One log queue per phase so stdout is broadcast to both
         self._q1 = queue.Queue()
         self._q2 = queue.Queue()
         self._q3 = queue.Queue()
@@ -110,7 +115,6 @@ class App(tk.Tk):
         self._build_fonts()
         self._build_chrome()
 
-        # Instantiate phase panels inside their tabs
         self.p1 = Phase1Panel(self.tab1, self._q1, self.f)
         self.p2 = Phase2Panel(self.tab2, self._q2, self.f)
         self.p3 = Phase3Panel(self.tab3, self._q3, self.f)
@@ -129,20 +133,23 @@ class App(tk.Tk):
         fonts["small"] = font.Font(family="Courier New", size=8)
 
     def _build_chrome(self):
-        # ── Global header ──────────────────────────────────────────────────────
         hdr = tk.Frame(self, bg=BG, pady=14)
         hdr.pack(fill="x", padx=30)
-        tk.Label(hdr, text="◈  PROJECT MONTAGE",
-                 font=self.f["title"], fg=GOLD, bg=BG).pack(side="left")
-        tk.Label(hdr, text="  autonomous story generation  ·  audio synthesis",
-                 font=self.f["sub"], fg=MUTED, bg=BG).pack(side="left", pady=4)
+        tk.Label(
+            hdr, text="◈  PROJECT MONTAGE",
+            font=self.f["title"], fg=GOLD, bg=BG,
+        ).pack(side="left")
+        tk.Label(
+            hdr,
+            text="  autonomous story · audio · per-character video generation",
+            font=self.f["sub"], fg=MUTED, bg=BG,
+        ).pack(side="left", pady=4)
         tk.Frame(self, bg=GOLD, height=1).pack(fill="x", padx=30)
 
-        # ── Custom tab bar ─────────────────────────────────────────────────────
         tab_bar = tk.Frame(self, bg=BG2, pady=0)
-        tab_bar.pack(fill="x", padx=30, pady=(0, 0))
+        tab_bar.pack(fill="x", padx=30)
 
-        self._tab_btns = []
+        self._tab_btns: list[tk.Button] = []
         self._active_tab = tk.IntVar(value=0)
 
         tab_defs = [
@@ -150,7 +157,6 @@ class App(tk.Tk):
             ("  PHASE 2  ·  Audio Synthesis   ", 1),
             ("  PHASE 3  ·  Video Creation     ", 2),
         ]
-
         for label, idx in tab_defs:
             btn = tk.Button(
                 tab_bar, text=label,
@@ -163,23 +169,18 @@ class App(tk.Tk):
             btn.pack(side="left")
             self._tab_btns.append(btn)
 
-        # Accent line under tab bar
-        self._tab_accent = tk.Frame(self, bg=BG3, height=2)
-        self._tab_accent.pack(fill="x", padx=30)
+        tk.Frame(self, bg=BG3, height=2).pack(fill="x", padx=30)
 
-        # ── Tab content frames ─────────────────────────────────────────────────
         self.tab1 = tk.Frame(self, bg=BG)
         self.tab2 = tk.Frame(self, bg=BG)
         self.tab3 = tk.Frame(self, bg=BG)
         self.tab1.pack(fill="both", expand=True)
-        # tab2 starts hidden
 
-        self._switch_tab(0)  # paint initial active state
+        self._switch_tab(0)
 
     def _switch_tab(self, idx: int):
         self._active_tab.set(idx)
         tabs = [self.tab1, self.tab2, self.tab3]
-
         for i, (btn, tab) in enumerate(zip(self._tab_btns, tabs)):
             if i == idx:
                 btn.config(bg=BG, fg=GOLD,  activebackground=BG,  activeforeground=GOLD2)
@@ -197,29 +198,24 @@ class Phase1Panel(tk.Frame):
     def __init__(self, parent, log_queue: queue.Queue, fonts: dict):
         super().__init__(parent, bg=BG)
         self.f = fonts
-        self._log_queue  = log_queue
-        self._hitl_event = threading.Event()
+        self._log_queue     = log_queue
+        self._hitl_event    = threading.Event()
         self._hitl_decision = {"approved": False, "feedback": ""}
-
         self._build_ui()
         self._poll_log()
 
-    # ── helpers ────────────────────────────────────────────────────────────────
     def _lbl(self, parent, text, fg=None):
         return tk.Label(parent, text=text, font=self.f["label"],
                         fg=fg or GOLD, bg=parent["bg"])
 
-    # ── UI ─────────────────────────────────────────────────────────────────────
     def _build_ui(self):
         body = tk.Frame(self, bg=BG)
         body.pack(fill="both", expand=True, padx=30, pady=12)
         body.columnconfigure(0, weight=55)
         body.columnconfigure(1, weight=45)
         body.rowconfigure(0, weight=1)
-
         self._build_left(body)
         self._build_right(body)
-
         self.status_var = tk.StringVar(value="Ready")
         sb = tk.Frame(self, bg=BG2, pady=7)
         sb.pack(fill="x", side="bottom")
@@ -233,32 +229,28 @@ class Phase1Panel(tk.Frame):
         left_container.columnconfigure(0, weight=1)
         left_container.rowconfigure(0, weight=1)
 
-        canvas = tk.Canvas(left_container, bg=BG, highlightthickness=0)
+        canvas    = tk.Canvas(left_container, bg=BG, highlightthickness=0)
         scrollbar = tk.Scrollbar(left_container, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas, bg=BG)
 
         scrollable_frame.bind(
             "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
         )
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw",
                               width=canvas.winfo_width())
         canvas.configure(yscrollcommand=scrollbar.set)
 
         def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
         canvas.bind("<MouseWheel>", _on_mousewheel)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
-
-        def _configure_canvas(event):
-            canvas.itemconfig(1, width=event.width)
-        canvas.bind("<Configure>", _configure_canvas)
+        canvas.bind("<Configure>", lambda e: canvas.itemconfig(1, width=e.width))
 
         left = scrollable_frame
         left.columnconfigure(0, weight=1)
 
-        # Input
         inf = tk.Frame(left, bg=BG2, padx=16, pady=14,
                        highlightbackground=BORDER, highlightthickness=1)
         inf.grid(row=0, column=0, sticky="ew", pady=(0, 10))
@@ -268,7 +260,7 @@ class Phase1Panel(tk.Frame):
             inf,
             text="Enter a plain prompt or paste a raw screenplay "
                  "(Scene 1: ...  Speaker: ...  [Visual] ...). Mode is detected automatically.",
-            font=self.f["label"], fg=MUTED, bg=BG2, justify="left", wraplength=440
+            font=self.f["label"], fg=MUTED, bg=BG2, justify="left", wraplength=440,
         ).grid(row=1, column=0, sticky="w", pady=(4, 8))
 
         self.prompt_text = scrolledtext.ScrolledText(
@@ -289,7 +281,6 @@ class Phase1Panel(tk.Frame):
         self.prompt_text.bind("<KeyRelease>", self._on_input_change)
         self._on_input_change()
 
-        # Run button
         self.run_btn = tk.Button(
             left, text="▶  RUN PIPELINE", font=self.f["btn"],
             bg=GOLD, fg="#0f0f0f", activebackground=GOLD2, activeforeground="#0f0f0f",
@@ -374,7 +365,6 @@ class Phase1Panel(tk.Frame):
             lbl.pack(side="left", padx=4)
             self.out_labels[name] = lbl
 
-    # ── Log ────────────────────────────────────────────────────────────────────
     def _log(self, text, tag=None):
         self.log_box.configure(state="normal")
         self.log_box.insert("end", text + "\n", tag or "")
@@ -385,17 +375,18 @@ class Phase1Panel(tk.Frame):
         try:
             while True:
                 msg = self._log_queue.get_nowait()
-                tag = ("green" if "✅" in msg else
-                       "gold"  if any(x in msg for x in
-                                      ["[MCP]","[Script","[Charact","[Valida",
-                                       "[HITL]","[Pipe","[Out"]) else
-                       "dim"   if msg.startswith("  →") else None)
+                tag = (
+                    "green" if "✅" in msg else
+                    "gold"  if any(x in msg for x in
+                                   ["[MCP]","[Script","[Charact","[Valida",
+                                    "[HITL]","[Pipe","[Out"]) else
+                    "dim"   if msg.startswith("  →") else None
+                )
                 self._log(msg.rstrip(), tag)
         except queue.Empty:
             pass
         self.after(100, self._poll_log)
 
-    # ── Stage indicators ───────────────────────────────────────────────────────
     def _set_stage(self, name, state):
         if name not in self.stage_labels:
             return
@@ -410,7 +401,6 @@ class Phase1Panel(tk.Frame):
         for s in self.stages:
             self._set_stage(s, "idle")
 
-    # ── HITL ───────────────────────────────────────────────────────────────────
     def _on_input_change(self, event=None):
         text = self.prompt_text.get("1.0", "end").strip()
         if not text:
@@ -450,7 +440,6 @@ class Phase1Panel(tk.Frame):
         if name in self.out_labels:
             self.out_labels[name].config(fg=GREEN)
 
-    # ── Run ────────────────────────────────────────────────────────────────────
     def _run_pipeline(self):
         self.run_btn.config(state="disabled", text="⏳  RUNNING…")
         self.status_var.set("Pipeline running…")
@@ -463,11 +452,8 @@ class Phase1Panel(tk.Frame):
 
         raw_input = self.prompt_text.get("1.0", "end").strip()
         mode = detect_input_mode(raw_input)
-
         threading.Thread(
-            target=self._pipeline_thread,
-            args=(mode, raw_input),
-            daemon=True
+            target=self._pipeline_thread, args=(mode, raw_input), daemon=True
         ).start()
 
     def _pipeline_thread(self, mode, raw_input):
@@ -497,15 +483,14 @@ class Phase1Panel(tk.Frame):
                 "script": script,
                 "characters": [],
                 "status": "processing",
-                "hitl_feedback": ""
+                "hitl_feedback": "",
             }
 
             self._patch_agents()
-            graph = build_graph()
+            graph  = build_graph()
             result = graph.invoke(state)
 
             save_outputs(result)
-
             self.after(0, lambda: self._mark_output("scene_manifest.json"))
             self.after(0, lambda: self._mark_output("character_db.json"))
             self.after(0, self._on_success)
@@ -515,9 +500,9 @@ class Phase1Panel(tk.Frame):
 
     def _patch_agents(self):
         import agents.scriptwriter as sw
-        import agents.validator   as vl
-        import agents.hitl        as hl
-        import agents.character   as ch
+        import agents.validator    as vl
+        import agents.hitl         as hl
+        import agents.character    as ch
 
         orig_sw = sw.scriptwriter_agent
         orig_vl = vl.validator_agent
@@ -538,14 +523,12 @@ class Phase1Panel(tk.Frame):
             return inner
 
         def gui_hitl(state):
-            print("[DEBUG] GUI HITL ACTIVE")
             app.after(0, lambda: app._set_stage("HITL Review", "running"))
             app.after(0, lambda: app.status_var.set("Waiting for human review…"))
             app._hitl_event.clear()
             script_copy = dict(state.get("script", {}))
             app.after(0, lambda: app._show_hitl(script_copy))
             app._hitl_event.wait()
-
             dec = app._hitl_decision
             if dec["approved"]:
                 state["status"] = "approved"
@@ -569,7 +552,7 @@ class Phase1Panel(tk.Frame):
             ("agents.scriptwriter", "scriptwriter_agent", sw.scriptwriter_agent),
             ("agents.validator",    "validator_agent",    vl.validator_agent),
             ("agents.hitl",         "hitl_agent",         hl.hitl_agent),
-            ("agents.character",    "character_agent",    ch.character_agent)
+            ("agents.character",    "character_agent",    ch.character_agent),
         ]:
             if _mod_name in _sys.modules:
                 setattr(_sys.modules[_mod_name], _attr, _val)
@@ -600,26 +583,21 @@ class Phase2Panel(tk.Frame):
         super().__init__(parent, bg=BG)
         self.f = fonts
         self._log_queue = log_queue
-
         self._build_ui()
         self._poll_log()
 
-    # ── helpers ────────────────────────────────────────────────────────────────
     def _lbl(self, parent, text, fg=None):
         return tk.Label(parent, text=text, font=self.f["label"],
                         fg=fg or GOLD, bg=parent["bg"])
 
-    # ── UI ─────────────────────────────────────────────────────────────────────
     def _build_ui(self):
         body = tk.Frame(self, bg=BG)
         body.pack(fill="both", expand=True, padx=30, pady=12)
         body.columnconfigure(0, weight=50)
         body.columnconfigure(1, weight=50)
         body.rowconfigure(0, weight=1)
-
         self._build_left(body)
         self._build_right(body)
-
         self.status_var = tk.StringVar(value="Ready — load Phase 1 outputs to begin")
         sb = tk.Frame(self, bg=BG2, pady=7)
         sb.pack(fill="x", side="bottom")
@@ -633,7 +611,6 @@ class Phase2Panel(tk.Frame):
         left.columnconfigure(0, weight=1)
         left.rowconfigure(3, weight=1)
 
-        # Input paths
         pf = tk.Frame(left, bg=BG2, padx=16, pady=14,
                       highlightbackground=BORDER, highlightthickness=1)
         pf.grid(row=0, column=0, sticky="ew", pady=(0, 10))
@@ -655,10 +632,9 @@ class Phase2Panel(tk.Frame):
                          row=i+1, column=1, sticky="ew", padx=(8, 6), ipady=4)
             tk.Button(pf, text="…", font=self.f["small"], bg=BG3, fg=GOLD,
                       relief="flat", padx=4, cursor="hand2",
-                      command=lambda l=label, v=var: self._browse(l, v)
+                      command=lambda l=label, v=var: self._browse(l, v),
                       ).grid(row=i+1, column=2)
 
-        # Run button
         self.run_btn = tk.Button(
             left, text="▶  RUN PHASE 2 PIPELINE", font=self.f["btn"],
             bg=GOLD, fg="#0f0f0f", activebackground=GOLD2, activeforeground="#0f0f0f",
@@ -666,7 +642,6 @@ class Phase2Panel(tk.Frame):
             command=self._run_pipeline)
         self.run_btn.grid(row=1, column=0, sticky="ew", pady=(0, 10))
 
-        # Pipeline progress
         sf = tk.Frame(left, bg=BG2, padx=16, pady=14,
                       highlightbackground=BORDER, highlightthickness=1)
         sf.grid(row=2, column=0, sticky="ew", pady=(0, 10))
@@ -683,7 +658,6 @@ class Phase2Panel(tk.Frame):
             lbl.pack(side="left")
             self.stage_labels[s] = (dot, lbl)
 
-        # Output files
         of = tk.Frame(left, bg=BG2, padx=16, pady=12,
                       highlightbackground=BORDER, highlightthickness=1)
         of.grid(row=3, column=0, sticky="nsew")
@@ -725,9 +699,8 @@ class Phase2Panel(tk.Frame):
         self.scene_frame = tk.Frame(right, bg=BG2, padx=14, pady=10,
                                     highlightbackground=BORDER, highlightthickness=1)
         self.scene_frame.grid(row=3, column=0, sticky="ew")
-        self.scene_rows = {}
+        self.scene_rows: dict = {}
 
-    # ── Helpers ────────────────────────────────────────────────────────────────
     def _browse(self, label, var):
         path = filedialog.askopenfilename(filetypes=[("JSON", "*.json"), ("All", "*.*")])
         if path:
@@ -743,12 +716,14 @@ class Phase2Panel(tk.Frame):
         try:
             while True:
                 msg = self._log_queue.get_nowait()
-                tag = ("green" if "✅" in msg else
-                       "red"   if "❌" in msg else
-                       "gold"  if any(x in msg for x in
-                                      ["[MCP", "[Scene", "[Voice", "[Output", "[Phase"]) else
-                       "blue"  if "parallel" in msg.lower() or "branch" in msg.lower() else
-                       "dim"   if msg.startswith("  →") or msg.startswith("  ✅") else None)
+                tag = (
+                    "green" if "✅" in msg else
+                    "red"   if "❌" in msg else
+                    "gold"  if any(x in msg for x in
+                                   ["[MCP", "[Scene", "[Voice", "[Output", "[Phase"]) else
+                    "blue"  if "parallel" in msg.lower() or "branch" in msg.lower() else
+                    "dim"   if msg.startswith("  →") or msg.startswith("  ✅") else None
+                )
                 self._log(msg.rstrip(), tag)
         except queue.Empty:
             pass
@@ -760,7 +735,7 @@ class Phase2Panel(tk.Frame):
             return
         dot, lbl = self.stage_labels[key]
         cfg = {"running": ("◉", GOLD), "done": ("●", GREEN),
-               "error":   ("✗", RED),  "idle": ("○", MUTED)}
+               "error": ("✗", RED), "idle": ("○", MUTED)}
         sym, col = cfg.get(state, ("○", MUTED))
         dot.config(text=sym, fg=col)
         lbl.config(fg=col)
@@ -773,13 +748,11 @@ class Phase2Panel(tk.Frame):
         for w in self.scene_frame.winfo_children():
             w.destroy()
         self.scene_rows = {}
-
         header = tk.Frame(self.scene_frame, bg=BG2)
         header.pack(fill="x", pady=(0, 4))
         for col, width, text in [(0, 8, "SCENE"), (1, 22, "LOCATION"), (2, 12, "AUDIO")]:
             tk.Label(header, text=text, font=self.f["small"], fg=GOLD,
                      bg=BG2, width=width, anchor="w").grid(row=0, column=col, padx=2)
-
         for task in task_graph:
             sid = task["scene_id"]
             row = tk.Frame(self.scene_frame, bg=BG3)
@@ -801,7 +774,6 @@ class Phase2Panel(tk.Frame):
         if key in self.out_labels:
             self.out_labels[key].config(fg=GREEN)
 
-    # ── Pipeline ───────────────────────────────────────────────────────────────
     def _run_pipeline(self):
         self.run_btn.config(state="disabled", text="⏳  RUNNING…")
         self.status_var.set("Phase 2 pipeline running…")
@@ -825,7 +797,6 @@ class Phase2Panel(tk.Frame):
             from utils.json_utils2 import save_outputs_p2
 
             register_tools_p2()
-
             state = {
                 "scene_manifest_path": config["scene_manifest_path"],
                 "character_db_path":   config["character_db_path"],
@@ -841,7 +812,7 @@ class Phase2Panel(tk.Frame):
             }
 
             self._patch_agents()
-            graph = build_graph2()
+            graph  = build_graph2()
             result = graph.invoke(state)
 
             self.after(0, lambda tg=result.get("task_graph", []):
@@ -905,7 +876,7 @@ class Phase2Panel(tk.Frame):
         self._log("✅  Phase 2 Completed Successfully!", "green")
         self._log("  outputs/audio/               — speech waveforms (.wav)", "green")
         self._log("  outputs/timing_manifest.json — per-line timings",        "green")
-        self._log("  outputs/logs/                — task graph execution log","green")
+        self._log("  outputs/logs/                — task graph execution log", "green")
         self._log("  outputs/phase2_manifest.json",                            "green")
         self._log("═" * 52, "gold")
 

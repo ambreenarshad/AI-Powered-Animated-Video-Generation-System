@@ -1,149 +1,279 @@
-# agents3/image_gen.py
 """
-Image Generation Agent  —  Phase 3
-────────────────────────────────────
-Generates one cinematic base image per scene using Pollinations.AI (free, no key).
-The Ken Burns agent then renders these into per-frame sequences.
+agents3/image_gen.py
+─────────────────────
+Generates one cinematic image per CHARACTER per scene.
 
-Pollinations endpoint (no API key, completely free):
-  GET https://image.pollinations.ai/prompt/{encoded_prompt}
-      ?width=1280&height=720&model=flux&seed={seed}&nologo=true&enhance=true
+Model: wan2.5-t2i-preview  (DashScope International, raw HTTP async)
+Endpoint: /services/aigc/text2image/image-synthesis
+
+wan2.5-t2i-preview must be called via raw HTTP (not the ImageSynthesis SDK
+which only accepts legacy wanx-prefixed model IDs).
 """
 
 from __future__ import annotations
+
+import os
 import time
-import random
-import urllib.request
-import urllib.parse
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import requests
 
 if TYPE_CHECKING:
     from state3 import Phase3State
 
-OUT_DIR = Path("outputs/images")
-TIMEOUT = 90
-RETRIES = 3
-WIDTH   = 1280
-HEIGHT  = 720
+# ── Config ────────────────────────────────────────────────────────────────────
+BASE_URL       = "https://dashscope-intl.aliyuncs.com/api/v1"
+T2I_SUBMIT_URL = f"{BASE_URL}/services/aigc/text2image/image-synthesis"
+TASK_QUERY_URL = f"{BASE_URL}/tasks/{{task_id}}"
+
+T2I_MODEL     = "wan2.5-t2i-preview"
+OUT_DIR       = Path("outputs/images/characters")
+WIDTH         = 1280
+HEIGHT        = 720
+RETRIES       = 3
+POLL_INTERVAL = 6    # seconds between polls
+MAX_WAIT      = 300  # 5 minutes max
 
 
-def _build_prompt(scene: dict) -> str:
-    location   = scene.get("location", "unknown location")
-    characters = scene.get("characters", [])
-    dialogue   = scene.get("dialogue", [])
-    visual_cue = next((d.get("visual_cue","").strip() for d in dialogue
-                       if d.get("visual_cue","").strip()), "")
-    char_str   = ", ".join(characters) if characters else "two characters"
-    parts = [
-        "cinematic still frame", "noir style", "dramatic chiaroscuro lighting",
-        "film grain", "35mm anamorphic lens",
-        f"location: {location}", f"characters: {char_str}",
-    ]
-    if visual_cue:
-        parts.append(f"shot: {visual_cue}")
-    parts += ["no text", "no watermark", "highly detailed", "4k"]
-    return ", ".join(parts)
+# ── Poll helper ───────────────────────────────────────────────────────────────
+
+def _poll_task(task_id: str, api_key: str) -> dict:
+    url     = TASK_QUERY_URL.format(task_id=task_id)
+    headers = {"Authorization": f"Bearer {api_key}"}
+    elapsed = 0
+    while elapsed < MAX_WAIT:
+        time.sleep(POLL_INTERVAL)
+        elapsed += POLL_INTERVAL
+        resp   = requests.get(url, headers=headers, timeout=30)
+        resp.raise_for_status()
+        data   = resp.json()
+        status = data.get("output", {}).get("task_status", "UNKNOWN")
+        if status == "SUCCEEDED":
+            return data["output"]
+        if status in ("FAILED", "CANCELED"):
+            msg = data.get("output", {}).get("message", str(data))
+            raise RuntimeError(f"Task {task_id} {status}: {msg}")
+        print(f"        ⏳ {task_id[:14]}… {status} ({elapsed}s)")
+    raise TimeoutError(f"Task {task_id} timed out after {MAX_WAIT}s")
 
 
-def _fetch_pollinations(prompt: str, seed: int, out_path: Path) -> bool:
-    encoded = urllib.parse.quote(prompt)
-    url = (
-        f"https://image.pollinations.ai/prompt/{encoded}"
-        f"?width={WIDTH}&height={HEIGHT}&model=flux"
-        f"&seed={seed}&nologo=true&enhance=true"
+# ── Prompt builder ────────────────────────────────────────────────────────────
+
+def _flatten_appearance(appearance) -> dict:
+    if isinstance(appearance, dict):
+        return appearance
+    if isinstance(appearance, str) and appearance:
+        return {"description": appearance}
+    return {}
+
+
+def _build_character_prompt(char_name, char_info, scene, dialogue_lines):
+    location    = scene.get("location", "unknown location")
+    style       = char_info.get("style", "cinematic noir")
+    app         = _flatten_appearance(char_info.get("appearance", {}))
+    age         = app.get("age",    "")
+    height      = app.get("height", "")
+    hair        = app.get("hair",   "")
+    eyes        = app.get("eyes",   "")
+    attire      = app.get("attire", char_info.get("clothing", ""))
+    personality = char_info.get("personality", char_info.get("traits", ""))
+    if isinstance(personality, list):
+        personality = ", ".join(personality)
+    gender     = char_info.get("gender", "")
+    visual_cue = next(
+        (d["visual_cue"] for d in dialogue_lines if d.get("visual_cue", "").strip()), ""
     )
+
+    parts = [
+        "Cinematic portrait still frame, dramatic noir lighting, film grain, 35mm anamorphic lens.",
+        f"Location: {location}.",
+        f"Subject: {char_name}",
+    ]
+    if gender:
+        parts[-1] += f", {gender}"
+    parts[-1] += ", single person, centered composition."
+    if age:       parts.append(f"Age: {age}.")
+    if height:    parts.append(f"Height: {height}.")
+    if hair:      parts.append(f"Hair: {hair}.")
+    if eyes:      parts.append(f"Eyes: {eyes}.")
+    if attire:    parts.append(f"Wearing: {attire}.")
+    if personality: parts.append(f"Expression and demeanor: {personality}.")
+    if visual_cue:  parts.append(f"Shot direction: {visual_cue}.")
+    parts += [f"Visual style: {style}.",
+              "Photorealistic, 4K, highly detailed, professional cinematography.",
+              "No text, no watermark."]
+    return " ".join(parts)
+
+
+# ── Image generation via raw HTTP ─────────────────────────────────────────────
+
+def _generate_image(prompt: str, api_key: str, out_path: Path) -> bool:
+    headers = {
+        "Authorization":     f"Bearer {api_key}",
+        "Content-Type":      "application/json",
+        "X-DashScope-Async": "enable",
+    }
+    payload = {
+        "model": T2I_MODEL,
+        "input": {"prompt": prompt},
+        "parameters": {
+            "size":      f"{WIDTH}*{HEIGHT}",
+            "n":         1,
+            "watermark": False,
+        },
+    }
+
     for attempt in range(1, RETRIES + 1):
         try:
-            print(f"    → Pollinations request (attempt {attempt}/{RETRIES})…")
-            req = urllib.request.Request(url, headers={"User-Agent": "ProjectMontage/1.0"})
-            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
-                data = resp.read()
-            if len(data) < 5_000:
-                raise ValueError(f"Response too small ({len(data)} B)")
+            print(f"    → [{T2I_MODEL}] attempt {attempt}/{RETRIES}…")
+            resp = requests.post(T2I_SUBMIT_URL, headers=headers, json=payload, timeout=60)
+            if resp.status_code != 200:
+                try:
+                    body = resp.json().get("message", resp.text[:300])
+                except Exception:
+                    body = resp.text[:300]
+                raise RuntimeError(f"HTTP {resp.status_code}: {body}")
+
+            data    = resp.json()
+            task_id = data.get("output", {}).get("task_id")
+            if not task_id:
+                raise RuntimeError(f"No task_id: {data}")
+
+            print(f"    → task_id={task_id[:16]}… polling…")
+            output  = _poll_task(task_id, api_key)
+
+            results = output.get("results") or output.get("images") or []
+            if not results:
+                raise RuntimeError(f"Empty results: {output}")
+
+            item    = results[0]
+            img_url = (item.get("url") or item.get("img_url") or "") if isinstance(item, dict) else str(item)
+            if not img_url:
+                raise RuntimeError(f"No image URL: {item}")
+
+            img_resp = requests.get(img_url, timeout=120)
+            img_resp.raise_for_status()
+            if len(img_resp.content) < 5_000:
+                raise ValueError(f"Image too small: {len(img_resp.content)} B")
+
             out_path.parent.mkdir(parents=True, exist_ok=True)
-            out_path.write_bytes(data)
+            out_path.write_bytes(img_resp.content)
+            print(f"    ✅ Saved {len(img_resp.content)//1024} KB → {out_path.name}")
             return True
+
         except Exception as exc:
-            print(f"    ⚠  Attempt {attempt} failed: {exc}")
+            print(f"    ⚠  [{T2I_MODEL}] attempt {attempt} failed: {exc}")
             if attempt < RETRIES:
                 time.sleep(4)
     return False
 
 
-def _make_gradient_placeholder(scene: dict, out_path: Path) -> str:
+# ── Gradient placeholder ──────────────────────────────────────────────────────
+
+def _gradient_placeholder(char_name: str, scene_id: int, out_path: Path):
     try:
         from PIL import Image, ImageDraw, ImageFont
     except ImportError:
+        import struct, zlib
+        def _chunk(t, d):
+            c = t + d
+            return struct.pack(">I", len(d)) + c + struct.pack(">I", zlib.crc32(c) & 0xFFFFFFFF)
+        png = (b'\x89PNG\r\n\x1a\n'
+               + _chunk(b'IHDR', struct.pack(">IIBBBBB", 8, 8, 8, 2, 0, 0, 0))
+               + _chunk(b'IDAT', zlib.compress(b'\x00\xff\x00\x00' * 64))
+               + _chunk(b'IEND', b''))
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_bytes(b'\x89PNG\r\n\x1a\n' + b'\x00' * 100)
-        return "bare_png"
+        out_path.write_bytes(png)
+        return
 
-    sid      = scene.get("scene_id", 1)
-    location = scene.get("location", "Unknown")
     palettes = [
         ((10,15,35),(60,80,140)), ((30,10,10),(120,40,30)),
         ((10,28,15),(30,80,50)),  ((25,20,10),(90,70,20)),
         ((20,10,30),(70,30,100)),
     ]
-    top, bot = palettes[(sid - 1) % len(palettes)]
+    top, bot = palettes[scene_id % len(palettes)]
     img  = Image.new("RGB", (WIDTH, HEIGHT))
     draw = ImageDraw.Draw(img)
     for y in range(HEIGHT):
         t = y / HEIGHT
-        draw.line([(0,y),(WIDTH,y)], fill=tuple(int(top[i]+(bot[i]-top[i])*t) for i in range(3)))
+        draw.line([(0,y),(WIDTH,y)], fill=(
+            int(top[0]+(bot[0]-top[0])*t),
+            int(top[1]+(bot[1]-top[1])*t),
+            int(top[2]+(bot[2]-top[2])*t),
+        ))
     vig = Image.new("RGBA", (WIDTH, HEIGHT), (0,0,0,0))
     vd  = ImageDraw.Draw(vig)
     for i in range(80):
         vd.rectangle([i,i,WIDTH-i,HEIGHT-i], outline=(0,0,0,int(180*(i/80)**2)))
-    img = Image.alpha_composite(img.convert("RGBA"), vig).convert("RGB")
+    img  = Image.alpha_composite(img.convert("RGBA"), vig).convert("RGB")
     draw = ImageDraw.Draw(img)
     try:
         fb = ImageFont.truetype("arial.ttf", 52)
         fs = ImageFont.truetype("arial.ttf", 28)
     except Exception:
         fb = fs = ImageFont.load_default()
-    draw.text((60,60), f"SCENE {sid}", font=fs, fill=(200,170,80))
-    draw.text((60,110), location.upper(), font=fb, fill=(240,230,200))
-    draw.line([(60,108),(300,108)], fill=(180,140,50), width=2)
+    draw.text((60,60),  f"SCENE {scene_id}", font=fs, fill=(200,170,80))
+    draw.text((60,110), char_name.upper(),    font=fb, fill=(240,230,200))
+    draw.line([(60,108),(360,108)], fill=(180,140,50), width=2)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     img.save(str(out_path), "PNG")
-    return "gradient_placeholder"
+    print(f"    ℹ Placeholder: {out_path.name}")
 
+
+# ── Agent ─────────────────────────────────────────────────────────────────────
 
 def image_gen_agent(state: "Phase3State") -> "Phase3State":
-    print("\n[Phase3][ImageGen] Starting per-scene image generation…")
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    scene_videos = state.get("scene_videos", [])
-    scenes_by_id = {s["scene_id"]: s for s in state.get("scenes", [])}
-    ai_count = pl_count = 0
+    print(f"\n[Phase3][ImageGen] Generating per-character images ({T2I_MODEL})…")
 
-    for sv in scene_videos:
-        sid      = sv["scene_id"]
-        out_path = OUT_DIR / f"scene_{sid:02d}.png"
-        if out_path.exists() and out_path.stat().st_size > 5_000:
-            print(f"  ⏭  Scene {sid}: image already exists — skipping")
-            sv["image_path"] = str(out_path)
-            if sv["status"] == "pending":
-                sv["status"] = "image_done"
-            continue
-        scene  = scenes_by_id.get(sid, {"scene_id":sid,"location":sv.get("location",""),"characters":[],"dialogue":[]})
-        prompt = _build_prompt(scene)
-        seed   = random.randint(1000, 99999)
-        print(f"  [Scene {sid}] Generating image…")
-        print(f"    Prompt: {prompt[:100]}…")
-        ok = _fetch_pollinations(prompt, seed, out_path)
-        if ok:
-            print(f"  ✅ Scene {sid} → {out_path} [{out_path.stat().st_size//1024} KB, AI]")
-            ai_count += 1
-        else:
-            print(f"  ⚠  Scene {sid}: network failed — using gradient placeholder")
-            _make_gradient_placeholder(scene, out_path)
-            print(f"  ✅ Scene {sid} → {out_path} [gradient_placeholder]")
-            pl_count += 1
-        sv["image_path"] = str(out_path)
-        sv["status"]     = "image_done"
-        time.sleep(1.5)
+    api_key   = state.get("dashscope_api_key") or os.getenv("DASHSCOPE_API_KEY", "")
+    task_graph = state["task_graph"]
+    char_map   = {c.get("name",""): c for c in state.get("characters",[])}
+    scene_map  = {s["scene_id"]: s for s in state.get("scenes",[])}
 
-    print(f"[Phase3][ImageGen] Complete — {ai_count} AI-generated, {pl_count} placeholders\n")
-    return {**state, "scene_videos": scene_videos}
+    ai_count = pl_count = skip_count = 0
+
+    for task in task_graph:
+        sid   = task["scene_id"]
+        scene = scene_map.get(sid, {"scene_id": sid, "location": task.get("location","")})
+
+        for clip in task["character_clips"]:
+            char_name = clip["character_name"]
+            safe_name = char_name.replace(" ","_")
+            out_path  = OUT_DIR / f"scene_{sid:02d}_{safe_name}.png"
+
+            if out_path.exists() and out_path.stat().st_size > 5_000:
+                print(f"  ⏭  Scene {sid} · {char_name}: exists — skipping")
+                clip["image_path"] = str(out_path)
+                if clip["status"] == "pending":
+                    clip["status"] = "image_done"
+                skip_count += 1
+                continue
+
+            char_info = char_map.get(char_name, {})
+            prompt    = _build_character_prompt(char_name, char_info, scene,
+                                                clip.get("dialogue_lines",[]))
+            print(f"\n  [Scene {sid} · {char_name}]")
+            print(f"  Prompt: {prompt[:140]}…")
+
+            generated = False
+            if api_key:
+                generated = _generate_image(prompt, api_key, out_path)
+            else:
+                print("  ⚠  No DASHSCOPE_API_KEY — skipping AI generation")
+
+            if generated:
+                ai_count += 1
+            else:
+                print(f"  ⚠  Scene {sid} · {char_name}: falling back to placeholder")
+                _gradient_placeholder(char_name, sid, out_path)
+                pl_count += 1
+
+            clip["image_path"] = str(out_path)
+            clip["status"]     = "image_done"
+            time.sleep(1.0)
+
+    total = ai_count + pl_count + skip_count
+    print(f"\n[Phase3][ImageGen] Complete — "
+          f"{ai_count} AI | {pl_count} placeholders | {skip_count} cached ({total} total)\n")
+    return {**state, "task_graph": task_graph}

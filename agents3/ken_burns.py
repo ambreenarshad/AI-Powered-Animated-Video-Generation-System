@@ -1,244 +1,422 @@
-# agents3/ken_burns.py
 """
-Ken Burns Agent  —  Phase 3
-─────────────────────────────
-Converts each scene's base image into an animated video clip by rendering
-every single frame individually via PIL, then encoding them into an MP4
-with MoviePy.
+agents3/ken_burns.py
+─────────────────────
+Per-character video generation using Wan Image-to-Video (I2V) models.
 
-Frame-by-frame pipeline per scene:
-  1. Load base image (outputs/images/scene_XX.png)
-  2. For each frame t ∈ [0, duration * FPS]:
-       a. Compute zoom level and pan offset using a smooth easing curve
-       b. Crop the zoomed region from the source image
-       c. Resize crop back to output resolution
-       d. Apply per-frame effects: subtle vignette, slight brightness drift
-       e. Write frame to outputs/frames/scene_XX/frame_NNNNN.png
-  3. Encode frame sequence → outputs/clips/scene_XX.mp4 via MoviePy
+Correct DashScope International model IDs for video generation:
+  Primary:   wan2.7-i2v-2026-04-25   ← Latest Wan2.7 I2V (April 2025 release)
+  Fallback1: wan2.7-i2v              ← Wan2.7 I2V stable
+  Fallback2: wan2.5-i2v-preview      ← Wan2.5 I2V Preview
+  Fallback3: wan2.2-i2v-plus         ← Wan2.2 I2V Plus (proven working)
+  Fallback4: wan2.1-i2v-plus         ← Wan2.1 I2V Plus (widest availability)
+  Fallback5: wan2.1-i2v-turbo        ← Wan2.1 I2V Turbo (fastest)
 
-Motion presets (cycle per scene):
-  - ZOOM_IN_CENTER   : slow zoom into centre
-  - ZOOM_IN_LEFT     : zoom + pan right (left-anchored)
-  - ZOOM_IN_RIGHT    : zoom + pan left (right-anchored)
-  - PAN_LEFT_TO_RIGHT: horizontal pan at fixed zoom
-  - PAN_RIGHT_TO_LEFT: reverse horizontal pan
+NOTE: Model IDs on DashScope use lowercase with hyphens.
+      "wan2.6-i2v-plus" does NOT exist — the correct IDs are above.
+      Always verify at: https://help.aliyun.com/zh/model-studio/
 """
 
 from __future__ import annotations
-import math
+
+import base64
 import os
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import requests
 
 if TYPE_CHECKING:
     from state3 import Phase3State
 
-# ── Constants ─────────────────────────────────────────────────────────────────
-FPS        = 24
-OUT_W      = 1280
-OUT_H      = 720
-CLIPS_DIR  = Path("outputs/clips")
-FRAMES_DIR = Path("outputs/frames")
+# ── Config ────────────────────────────────────────────────────────────────────
+dashscope_base = "https://dashscope-intl.aliyuncs.com/api/v1"
 
-# Motion preset definitions: (zoom_start, zoom_end, pan_x_start, pan_x_end, pan_y_start, pan_y_end)
-# Zoom values are multipliers on the crop size (1.0 = full image, 1.3 = 30% zoomed in)
-MOTION_PRESETS = [
-    # name               z0    z1    px0   px1   py0   py1
-    ("ZOOM_IN_CENTER",   1.0,  1.25, 0.5,  0.5,  0.5,  0.5),
-    ("ZOOM_IN_LEFT",     1.0,  1.30, 0.3,  0.5,  0.5,  0.5),
-    ("ZOOM_IN_RIGHT",    1.0,  1.30, 0.7,  0.5,  0.5,  0.5),
-    ("PAN_L_TO_R",       1.15, 1.15, 0.25, 0.75, 0.5,  0.5),
-    ("PAN_R_TO_L",       1.15, 1.15, 0.75, 0.25, 0.5,  0.5),
-    ("ZOOM_OUT_CENTER",  1.30, 1.0,  0.5,  0.5,  0.5,  0.5),
-    ("DIAGONAL_DRIFT",   1.10, 1.25, 0.3,  0.6,  0.4,  0.6),
+I2V_SUBMIT_URL = (
+    f"{dashscope_base}/services/aigc/video-generation/video-synthesis"
+)
+TASK_QUERY_URL = f"{dashscope_base}/tasks/{{task_id}}"
+
+# Model priority list — tries each in order until one succeeds
+I2V_MODELS = [
+    "wan2.7-i2v-2026-04-25",   # Latest Wan2.7 I2V (best quality)
+    "wan2.7-i2v",              # Wan2.7 I2V stable
+    "wan2.5-i2v-preview",      # Wan2.5 I2V Preview
+    "wan2.2-i2v-plus",         # Wan2.2 I2V Plus (proven)
+    "wan2.2-i2v-flash",        # Wan2.2 I2V Flash (fast)
+    "wan2.1-i2v-plus",         # Wan2.1 I2V Plus (wide availability)
+    "wan2.1-i2v-turbo",        # Wan2.1 I2V Turbo (fastest fallback)
 ]
 
-
-# ── Easing ────────────────────────────────────────────────────────────────────
-def _ease_in_out(t: float) -> float:
-    """Smooth cubic ease-in-out: 0 → 1."""
-    return t * t * (3.0 - 2.0 * t)
+CLIPS_DIR     = Path("outputs/clips")
+POLL_INTERVAL = 8     # seconds between polls
+MAX_WAIT      = 600   # 10 minutes max per clip
 
 
-# ── Single frame renderer ─────────────────────────────────────────────────────
-def _render_frame(src_img, t_norm: float, preset: tuple, frame_idx: int):
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _to_base64_data_uri(image_path: str) -> str:
+    """Read image and return a base64 data URI."""
+    with open(image_path, "rb") as f:
+        data = base64.b64encode(f.read()).decode("utf-8")
+
+    # Detect format from file extension
+    ext = Path(image_path).suffix.lower()
+    mime = {".png": "image/png", ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg", ".webp": "image/webp"}.get(ext, "image/png")
+    return f"data:{mime};base64,{data}"
+
+
+def _poll_task(task_id: str, api_key: str) -> dict:
+    """Poll until SUCCEEDED or FAILED. Returns output dict."""
+    url     = TASK_QUERY_URL.format(task_id=task_id)
+    headers = {"Authorization": f"Bearer {api_key}"}
+    elapsed = 0
+
+    while elapsed < MAX_WAIT:
+        time.sleep(POLL_INTERVAL)
+        elapsed += POLL_INTERVAL
+
+        resp = requests.get(url, headers=headers, timeout=30)
+        resp.raise_for_status()
+        data   = resp.json()
+        status = data.get("output", {}).get("task_status", "UNKNOWN")
+
+        if status == "SUCCEEDED":
+            return data["output"]
+        if status in ("FAILED", "CANCELED"):
+            err_msg = data.get("output", {}).get("message", "no message")
+            raise RuntimeError(f"Task {task_id} {status}: {err_msg}")
+
+        print(f"        ⏳ {task_id[:14]}… {status} ({elapsed}s elapsed)")
+
+    raise TimeoutError(f"Task {task_id} timed out after {MAX_WAIT}s")
+
+
+def _download_video(url: str, dest: Path) -> str:
+    """Download video from URL to dest path."""
+    resp = requests.get(url, stream=True, timeout=300)
+    resp.raise_for_status()
+    with open(dest, "wb") as f:
+        for chunk in resp.iter_content(chunk_size=8192):
+            f.write(chunk)
+    return str(dest)
+
+
+# ── Prompt builder ────────────────────────────────────────────────────────────
+
+def _build_video_prompt(
+    char_name: str,
+    char_info: dict,
+    dialogue_lines: list[dict],
+    location: str,
+) -> str:
+    all_text = " ".join(
+        d.get("line", "") for d in dialogue_lines if d.get("line")
+    ).strip()
+
+    # Flatten appearance dict
+    appearance = char_info.get("appearance", {})
+    if isinstance(appearance, dict):
+        age    = appearance.get("age", "")
+        hair   = appearance.get("hair", "")
+        eyes   = appearance.get("eyes", "")
+        attire = appearance.get("attire", "")
+    else:
+        age = hair = eyes = attire = ""
+
+    # Personality list or string
+    personality = char_info.get("personality", char_info.get("traits", ""))
+    if isinstance(personality, list):
+        personality = ", ".join(personality)
+
+    gender = char_info.get("gender", "")
+
+    # Speech section
+    if all_text:
+        excerpt = all_text[:140].rstrip()
+        if len(all_text) > 140:
+            excerpt += "…"
+        speech_part = (
+            f"{char_name} is speaking. Mouth moves naturally in sync with dialogue. "
+            f'Dialogue: "{excerpt}". '
+        )
+    else:
+        speech_part = (
+            f"{char_name} looks at camera with a calm, natural expression. "
+            "Subtle breathing and natural blinking. "
+        )
+
+    # Visual cue
+    visual_cues = [d.get("visual_cue", "") for d in dialogue_lines if d.get("visual_cue")]
+    cue_part = f"{visual_cues[0][:80]}. " if visual_cues else ""
+
+    # Character description for animation fidelity
+    desc_parts = []
+    if gender:
+        desc_parts.append(gender)
+    if age:
+        desc_parts.append(f"age {age}")
+    if hair:
+        desc_parts.append(f"{hair} hair")
+    if eyes:
+        desc_parts.append(f"{eyes} eyes")
+    if attire:
+        desc_parts.append(f"wearing {attire}")
+    if personality:
+        desc_parts.append(f"personality: {personality}")
+    char_desc = f"Character description: {', '.join(desc_parts)}. " if desc_parts else ""
+
+    prompt = (
+        f"Cinematic short video clip. "
+        f"Location: {location}. "
+        + char_desc
+        + speech_part
+        + cue_part
+        + "Natural realistic lip movement, subtle head motion, realistic blinking, "
+          "gentle breathing. "
+          "Dramatic chiaroscuro lighting, film grain, 35mm anamorphic lens aesthetic. "
+          "High quality, photorealistic, no text overlay, no watermark."
+    )
+    return prompt
+
+
+# ── Core video generation ─────────────────────────────────────────────────────
+
+def _submit_i2v_task(
+    model: str,
+    image_path: str,
+    prompt: str,
+    api_key: str,
+) -> str:
+    """Submit an I2V task and return the task_id."""
+    headers = {
+        "Authorization":     f"Bearer {api_key}",
+        "Content-Type":      "application/json",
+        "X-DashScope-Async": "enable",
+    }
+
+    # Use base64 data URI for the image (most compatible method)
+    img_data_uri = _to_base64_data_uri(image_path)
+
+    payload = {
+        "model": model,
+        "input": {
+            "prompt":  prompt,
+            "img_url": img_data_uri,
+        },
+        "parameters": {
+            "resolution":    "480P",
+            "prompt_extend": True,
+            "watermark":     False,
+        },
+    }
+
+    resp = requests.post(
+        I2V_SUBMIT_URL, headers=headers, json=payload, timeout=60
+    )
+
+    if resp.status_code != 200:
+        err_body = ""
+        try:
+            err_body = resp.json().get("message", resp.text[:200])
+        except Exception:
+            err_body = resp.text[:200]
+        raise RuntimeError(f"HTTP {resp.status_code}: {err_body}")
+
+    data    = resp.json()
+    task_id = data.get("output", {}).get("task_id")
+    if not task_id:
+        raise RuntimeError(f"No task_id in response: {data}")
+
+    return task_id
+
+
+def _generate_character_video(
+    clip: dict,
+    char_info: dict,
+    location: str,
+    api_key: str,
+    out_path: Path,
+) -> bool:
     """
-    Render one frame.
-
-    Args:
-        src_img:   PIL Image (the base scene image, large enough to crop from)
-        t_norm:    normalised time 0.0 → 1.0
-        preset:    motion preset tuple
-        frame_idx: frame number (used for subtle flicker)
-
-    Returns:
-        PIL Image of size (OUT_W, OUT_H)
+    Try each I2V model in priority order.
+    Returns True on success, raises on total failure.
     """
-    from PIL import Image, ImageEnhance, ImageFilter
-
-    _, z0, z1, px0, px1, py0, py1 = preset
-    ease = _ease_in_out(t_norm)
-
-    zoom   = z0 + (z1 - z0) * ease
-    pan_x  = px0 + (px1 - px0) * ease
-    pan_y  = py0 + (py1 - py0) * ease
-
-    src_w, src_h = src_img.size
-
-    # Crop window size (smaller = more zoomed in)
-    crop_w = int(src_w / zoom)
-    crop_h = int(src_h / zoom)
-
-    # Crop centre position
-    cx = int(pan_x * src_w)
-    cy = int(pan_y * src_h)
-
-    # Clamp crop box inside source
-    x0 = max(0, min(cx - crop_w // 2, src_w - crop_w))
-    y0 = max(0, min(cy - crop_h // 2, src_h - crop_h))
-    x1 = x0 + crop_w
-    y1 = y0 + crop_h
-
-    frame = src_img.crop((x0, y0, x1, y1)).resize((OUT_W, OUT_H), Image.LANCZOS)
-
-    # Subtle brightness drift (film breathing effect, ±2%)
-    breath = 1.0 + 0.02 * math.sin(frame_idx * 0.15)
-    frame  = ImageEnhance.Brightness(frame).enhance(breath)
-
-    # Very light vignette burned into every frame
-    if not hasattr(_render_frame, "_vignette"):
-        vig = Image.new("RGBA", (OUT_W, OUT_H), (0, 0, 0, 0))
-        from PIL import ImageDraw
-        vd = ImageDraw.Draw(vig)
-        for i in range(60):
-            alpha = int(120 * (i / 60) ** 2)
-            vd.rectangle([i, i, OUT_W - i, OUT_H - i], outline=(0, 0, 0, alpha))
-        _render_frame._vignette = vig
-
-    composited = Image.alpha_composite(frame.convert("RGBA"),
-                                       _render_frame._vignette)
-    return composited.convert("RGB")
-
-
-# ── Scene processor ───────────────────────────────────────────────────────────
-def _process_scene(sv: dict, preset: tuple) -> str | None:
-    """
-    Render all frames for one scene and encode to MP4.
-    Returns output clip path, or None on error.
-    """
-    from PIL import Image
-
-    sid        = sv["scene_id"]
-    image_path = sv.get("image_path")
-    duration   = sv.get("duration", 5.0)
+    char_name  = clip["character_name"]
+    image_path = clip.get("image_path")
+    dialogue   = clip.get("dialogue_lines", [])
 
     if not image_path or not Path(image_path).exists():
-        print(f"  ❌ Scene {sid}: no base image found at {image_path}")
-        return None
+        raise FileNotFoundError(f"Character image not found: {image_path}")
 
-    # Output paths
-    clip_path   = CLIPS_DIR / f"scene_{sid:02d}.mp4"
-    frames_dir  = FRAMES_DIR / f"scene_{sid:02d}"
-    frames_dir.mkdir(parents=True, exist_ok=True)
-    CLIPS_DIR.mkdir(parents=True, exist_ok=True)
+    prompt = _build_video_prompt(char_name, char_info, dialogue, location)
+    print(f"    Prompt ({len(prompt)} chars): {prompt[:120]}…")
 
-    total_frames = max(int(duration * FPS), 1)
-    print(f"  [Scene {sid}] Rendering {total_frames} frames "
-          f"({duration:.1f}s @ {FPS}fps) — preset: {preset[0]}")
+    last_error = None
+    for model in I2V_MODELS:
+        try:
+            print(f"    → Submitting [{model}]…")
+            task_id = _submit_i2v_task(model, image_path, prompt, api_key)
+            print(f"    → task_id={task_id[:16]}… polling…")
 
-    # Load source image — upscale slightly so Ken Burns has room to crop
-    src = Image.open(image_path).convert("RGB")
-    # Upscale source to 1.5× so zoom crops never go out of bounds
-    src = src.resize((int(src.width * 1.5), int(src.height * 1.5)), Image.LANCZOS)
+            output = _poll_task(task_id, api_key)
 
-    frame_paths = []
-    for i in range(total_frames):
-        t_norm     = i / max(total_frames - 1, 1)
-        frame_img  = _render_frame(src, t_norm, preset, i)
-        frame_file = frames_dir / f"frame_{i:05d}.png"
-        frame_img.save(str(frame_file), "PNG", optimize=False)
-        frame_paths.append(str(frame_file))
+            # Extract video URL
+            video_url = (
+                output.get("video_url")
+                or output.get("url")
+                or (output.get("results") or [{}])[0].get("url", "")
+                or (output.get("videos") or [{}])[0].get("url", "")
+            )
+            if not video_url:
+                raise RuntimeError(f"No video URL in output: {list(output.keys())}")
 
-        if i % FPS == 0:   # progress every second
-            print(f"    frame {i+1}/{total_frames} …")
+            _download_video(video_url, out_path)
+            size_kb = out_path.stat().st_size // 1024
+            print(f"    ✅ [{model}] downloaded {size_kb} KB → {out_path}")
+            return True
 
-    print(f"  [Scene {sid}] ✅ {total_frames} frames written — encoding MP4…")
+        except Exception as exc:
+            print(f"    ⚠  [{model}] failed: {exc}")
+            last_error = exc
+            time.sleep(2)
 
-    # ── Encode with MoviePy ───────────────────────────────────────────────────
+    raise RuntimeError(f"All I2V models failed. Last error: {last_error}")
+
+
+# ── Static image fallback (FFmpeg) ────────────────────────────────────────────
+
+def _static_fallback(clip: dict, out_path: Path) -> bool:
+    """
+    Encode the character still image as a static video clip using FFmpeg.
+    Used when all I2V API calls fail.
+    """
+    import subprocess
+    import shutil
+
+    image_path = clip.get("image_path")
+    duration   = clip.get("duration_sec", 5.0)
+
+    if not image_path or not Path(image_path).exists():
+        print(f"    ❌ Static fallback: no image at {image_path}")
+        return False
+    if not shutil.which("ffmpeg"):
+        print("    ❌ Static fallback: ffmpeg not found")
+        return False
+
     try:
-        from moviepy.editor import ImageSequenceClip
-        clip = ImageSequenceClip(frame_paths, fps=FPS)
-        clip.write_videofile(
-            str(clip_path),
-            fps=FPS,
-            codec="libx264",
-            preset="fast",
-            ffmpeg_params=["-crf", "23", "-pix_fmt", "yuv420p"],
-            logger=None,
-        )
-        clip.close()
-    except Exception as exc:
-        # Fallback: use ffmpeg directly via subprocess
-        print(f"  ⚠  MoviePy encode failed ({exc}) — trying ffmpeg subprocess…")
-        import subprocess
-        pattern = str(frames_dir / "frame_%05d.png")
         cmd = [
             "ffmpeg", "-y",
-            "-framerate", str(FPS),
-            "-i", pattern,
-            "-c:v", "libx264",
-            "-preset", "fast",
-            "-crf", "23",
+            "-loop", "1",
+            "-i",    image_path,
+            "-vf",   (
+                "scale=1280:720:force_original_aspect_ratio=decrease,"
+                "pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black"
+            ),
+            "-c:v",     "libx264",
             "-pix_fmt", "yuv420p",
-            str(clip_path),
+            "-t",       f"{duration:.3f}",
+            "-r",       "24",
+            str(out_path),
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, timeout=120)
         if result.returncode != 0:
-            print(f"  ❌ ffmpeg failed: {result.stderr[-300:]}")
-            return None
-
-    # Clean up frames to save disk (optional — comment out to keep frames)
-    for fp in frame_paths:
-        try:
-            os.remove(fp)
-        except OSError:
-            pass
-
-    print(f"  ✅ Scene {sid} clip → {clip_path}")
-    return str(clip_path)
+            print(f"    ❌ FFmpeg static fallback error: {result.stderr.decode()[-200:]}")
+            return False
+        if not out_path.exists() or out_path.stat().st_size < 1000:
+            return False
+        print(f"    ℹ Static fallback clip created: {out_path}")
+        return True
+    except Exception as e:
+        print(f"    ❌ Static fallback exception: {e}")
+        return False
 
 
-# ── Agent entry point ─────────────────────────────────────────────────────────
+# ── Agent ─────────────────────────────────────────────────────────────────────
+
 def ken_burns_agent(state: "Phase3State") -> "Phase3State":
-    print("\n[Phase3][KenBurns] Rendering frame-by-frame Ken Burns animations…")
+    """
+    Generate per-character videos using Wan I2V models.
+    Falls back to a static-image clip if all API calls fail.
+    """
+    print("\n[Phase3][VideoGen] Generating per-character videos (Wan I2V)…")
+
     CLIPS_DIR.mkdir(parents=True, exist_ok=True)
-    FRAMES_DIR.mkdir(parents=True, exist_ok=True)
 
-    scene_videos = state.get("scene_videos", [])
-    errors = 0
+    api_key    = state.get("dashscope_api_key") or os.getenv("DASHSCOPE_API_KEY", "")
+    task_graph = state["task_graph"]
+    char_list  = state.get("characters", [])
 
-    for idx, sv in enumerate(scene_videos):
-        sid       = sv["scene_id"]
-        clip_path = CLIPS_DIR / f"scene_{sid:02d}.mp4"
+    # Build character info lookup
+    char_map: dict[str, dict] = {c.get("name", ""): c for c in char_list}
 
-        if clip_path.exists() and clip_path.stat().st_size > 10_000:
-            print(f"  ⏭  Scene {sid}: clip already exists — skipping")
-            sv["video_clip"] = str(clip_path)
-            if sv["status"] == "image_done":
-                sv["status"] = "clip_done"
-            continue
+    ok_count  = 0
+    err_count = 0
 
-        preset = MOTION_PRESETS[idx % len(MOTION_PRESETS)]
-        result = _process_scene(sv, preset)
+    for task in task_graph:
+        sid      = task["scene_id"]
+        location = task.get("location", "unknown location")
 
-        if result:
-            sv["video_clip"] = result
-            sv["status"]     = "clip_done"
-        else:
-            sv["status"] = "error"
-            sv["error"]  = "Ken Burns rendering failed"
-            errors += 1
+        for clip in task["character_clips"]:
+            char_name = clip["character_name"]
+            safe_name = char_name.replace(" ", "_")
+            out_path  = CLIPS_DIR / f"scene_{sid:02d}_{safe_name}.mp4"
 
-    ok = len(scene_videos) - errors
-    print(f"[Phase3][KenBurns] Complete — {ok} clips rendered, {errors} errors\n")
-    return {**state, "scene_videos": scene_videos}
+            # Skip if already generated and large enough
+            if out_path.exists() and out_path.stat().st_size > 10_000:
+                print(f"  ⏭  Scene {sid} · {char_name}: clip exists — skipping")
+                clip["raw_video_path"] = str(out_path)
+                if clip["status"] == "image_done":
+                    clip["status"] = "video_done"
+                ok_count += 1
+                continue
+
+            # Cannot generate video without image
+            if clip["status"] == "pending" or not clip.get("image_path"):
+                print(f"  ⚠  Scene {sid} · {char_name}: no image — using static fallback")
+                if _static_fallback(clip, out_path):
+                    clip["raw_video_path"] = str(out_path)
+                    clip["status"]         = "video_done"
+                    ok_count += 1
+                else:
+                    clip["status"] = "error"
+                    clip["error"]  = "No image and static fallback failed"
+                    err_count += 1
+                continue
+
+            print(f"\n  [Scene {sid} · {char_name}] Generating video…")
+            char_info = char_map.get(char_name, {})
+
+            try:
+                if api_key:
+                    success = _generate_character_video(
+                        clip, char_info, location, api_key, out_path
+                    )
+                    if success:
+                        clip["raw_video_path"] = str(out_path)
+                        clip["status"]         = "video_done"
+                        sz = out_path.stat().st_size // 1024
+                        print(f"  ✅ Scene {sid} · {char_name} → {out_path} [{sz} KB]")
+                        ok_count += 1
+                        continue
+                else:
+                    print(f"  ⚠  No API key — using static fallback for {char_name}")
+
+            except Exception as exc:
+                print(f"  ⚠  Scene {sid} · {char_name}: I2V API failed ({exc})")
+
+            # Fallback: static image clip
+            print(f"       Falling back to static-image clip…")
+            if _static_fallback(clip, out_path):
+                clip["raw_video_path"] = str(out_path)
+                clip["status"]         = "video_done"
+                print(f"  ℹ  Scene {sid} · {char_name}: static fallback used")
+                ok_count += 1
+            else:
+                clip["status"] = "error"
+                clip["error"]  = "All video generation methods failed"
+                err_count += 1
+
+    print(f"\n[Phase3][VideoGen] Complete — {ok_count} done, {err_count} errors\n")
+    return {**state, "task_graph": task_graph}

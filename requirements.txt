@@ -1,5 +1,4 @@
-# requirements_phase2.txt
-# ── Phase 1 deps (already installed) ─────────────────────────────────────────
+# CORE LLM + PIPELINE
 langgraph>=0.2.0
 langchain-chroma>=0.1.0
 langchain-huggingface>=0.0.3
@@ -9,21 +8,28 @@ requests>=2.31.0
 numpy>=1.24.0
 sentence-transformers>=2.2.0
 
-# ── Phase 2 additional deps ───────────────────────────────────────────────────
-# Core audio/video processing
-#wave                        # stdlib — no install needed
-#struct                      # stdlib — no install needed
+# IMAGE + VIDEO PROCESSING
+dashscope>=1.14.0
+moviepy==1.0.3
+imageio>=2.34.0
+imageio-ffmpeg>=0.4.9
+Pillow>=10.0.0
 
-# Optional: Real TTS (ElevenLabs)
-# elevenlabs>=1.0.0           # pip install elevenlabs
-edge-tts>=6.1.9           # pip install edge-tts
-# Optional: Real stock footage
-# pexels-api                  # set PEXELS_API_KEY in .env
+# AUDIO / TTS
+edge-tts>=6.1.9
 
-# Optional: Real face swap (heavy — GPU recommended)
-# insightface>=0.7.3          # pip install insightface onnxruntime-gpu
-# opencv-python>=4.8.0        # pip install opencv-python
+# UI / CLIENT
+gradio_client>=0.15.0
 
-# Optional: Real lip sync
-# Wav2Lip — install from: https://github.com/Rudrabha/Wav2Lip
-# SadTalker — install from: https://github.com/OpenTalker/SadTalker
+# OPTIONAL (uncomment if needed)
+# ElevenLabs TTS
+# elevenlabs>=1.0.0
+# Computer Vision / Face Processing
+# opencv-python>=4.8.0
+# insightface>=0.7.3
+
+# Stock footage API
+# pexels-api
+# Advanced lip-sync tools (manual install required)
+# Wav2Lip: https://github.com/Rudrabha/Wav2Lip
+# SadTalker: https://github.com/OpenTalker/SadTalker
