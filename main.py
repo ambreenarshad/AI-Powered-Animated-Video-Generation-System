@@ -1,6 +1,6 @@
 """
 PROJECT MONTAGE — Unified Launcher
-Tabs: Phase 1 (Story Generation) · Phase 2 (Audio Synthesis) · Phase 3 (Video Generation)
+Tabs: Phase 1 (Story Generation) · Phase 2 (Audio Synthesis) · Phase 3 (Video Generation) · Phase 4 (Edit & Undo)
 Cinematic noir aesthetic throughout.
 """
 
@@ -14,6 +14,7 @@ import queue
 import os
 
 from phase3_panel import Phase3Panel
+from edit_panel import EditPanel
 
 
 # ── Stdout redirect ───────────────────────────────────────────────────────────
@@ -107,20 +108,77 @@ class App(tk.Tk):
         self.minsize(980, 720)
         self.configure(bg=BG)
 
+        # Shared pipeline state (updated after each phase completes)
+        self._current_pipeline_state: dict = {}
+
         self._q1 = queue.Queue()
         self._q2 = queue.Queue()
         self._q3 = queue.Queue()
-        sys.stdout = QueueStream([self._q1, self._q2, self._q3])
+        self._q4 = queue.Queue()
+        sys.stdout = QueueStream([self._q1, self._q2, self._q3, self._q4])
 
         self._build_fonts()
         self._build_chrome()
 
-        self.p1 = Phase1Panel(self.tab1, self._q1, self.f)
-        self.p2 = Phase2Panel(self.tab2, self._q2, self.f)
+        self.p1 = Phase1Panel(self.tab1, self._q1, self.f, app=self)
+        self.p2 = Phase2Panel(self.tab2, self._q2, self.f, app=self)
         self.p3 = Phase3Panel(self.tab3, self._q3, self.f)
+        self.p4 = EditPanel(
+            self.tab4, self._q4, self.f,
+            get_pipeline_state=lambda: self._current_pipeline_state,
+            set_pipeline_state=self._on_state_restored,
+        )
+
         self.p1.pack(fill="both", expand=True)
         self.p2.pack(fill="both", expand=True)
         self.p3.pack(fill="both", expand=True)
+        self.p4.pack(fill="both", expand=True)
+
+        # Patch Phase3Panel success to also snapshot + push state
+        self._patch_phase3_success()
+
+    def _patch_phase3_success(self):
+        """Wrap Phase3Panel._on_success to snapshot state after Phase 3 completes."""
+        orig = self.p3._on_success
+
+        app = self
+
+        def patched_success():
+            orig()
+            try:
+                state = app._current_pipeline_state.copy()
+                state["phase3_complete"] = True
+                from state_manager import get_state_manager
+                mgr = get_state_manager()
+                import glob as _glob
+                assets = (
+                    _glob.glob("outputs/video/final_output.mp4")
+                    + _glob.glob("outputs/video/synced/*.mp4")
+                    + _glob.glob("outputs/video/scenes/*.mp4")
+                    + _glob.glob("outputs/logs/phase3_task_log.json")
+                )
+                mgr.snapshot(state, asset_paths=assets, label="Phase 3 complete")
+                app._current_pipeline_state = state
+                app.p4.load_state(state)
+                app.p4._refresh_history()
+            except Exception as exc:
+                print(f"  ⚠ Phase 3 state snapshot failed: {exc}")
+
+        self.p3._on_success = patched_success
+
+    # ── State bridge ──────────────────────────────────────────────────────────
+
+    def _on_state_restored(self, state: dict):
+        """Called by EditPanel when the user reverts to a previous version."""
+        self._current_pipeline_state = state
+        # Best-effort: push restored script back to Phase 1 display
+        if "script" in state:
+            try:
+                self.p1.prompt_text.delete("1.0", "end")
+                self.p1.prompt_text.insert(
+                    "1.0", json.dumps(state["script"], indent=2))
+            except Exception:
+                pass
 
     def _build_fonts(self):
         self.f = fonts = {}
@@ -155,7 +213,8 @@ class App(tk.Tk):
         tab_defs = [
             ("  PHASE 1  ·  Story Generation  ", 0),
             ("  PHASE 2  ·  Audio Synthesis   ", 1),
-            ("  PHASE 3  ·  Video Creation     ", 2),
+            ("  PHASE 3  ·  Video Creation    ", 2),
+            ("  PHASE 4  ·  Edit & Undo       ", 3),
         ]
         for label, idx in tab_defs:
             btn = tk.Button(
@@ -174,13 +233,14 @@ class App(tk.Tk):
         self.tab1 = tk.Frame(self, bg=BG)
         self.tab2 = tk.Frame(self, bg=BG)
         self.tab3 = tk.Frame(self, bg=BG)
+        self.tab4 = tk.Frame(self, bg=BG)
         self.tab1.pack(fill="both", expand=True)
 
         self._switch_tab(0)
 
     def _switch_tab(self, idx: int):
         self._active_tab.set(idx)
-        tabs = [self.tab1, self.tab2, self.tab3]
+        tabs = [self.tab1, self.tab2, self.tab3, self.tab4]
         for i, (btn, tab) in enumerate(zip(self._tab_btns, tabs)):
             if i == idx:
                 btn.config(bg=BG, fg=GOLD,  activebackground=BG,  activeforeground=GOLD2)
@@ -195,9 +255,10 @@ class App(tk.Tk):
 # ══════════════════════════════════════════════════════════════════════════════
 
 class Phase1Panel(tk.Frame):
-    def __init__(self, parent, log_queue: queue.Queue, fonts: dict):
+    def __init__(self, parent, log_queue: queue.Queue, fonts: dict, app: App = None):
         super().__init__(parent, bg=BG)
         self.f = fonts
+        self._app = app
         self._log_queue     = log_queue
         self._hitl_event    = threading.Event()
         self._hitl_decision = {"approved": False, "feedback": ""}
@@ -493,7 +554,7 @@ class Phase1Panel(tk.Frame):
             save_outputs(result)
             self.after(0, lambda: self._mark_output("scene_manifest.json"))
             self.after(0, lambda: self._mark_output("character_db.json"))
-            self.after(0, self._on_success)
+            self.after(0, lambda r=result: self._on_success(r))
 
         except Exception as e:
             self.after(0, lambda err=str(e): self._on_error(err))
@@ -559,7 +620,7 @@ class Phase1Panel(tk.Frame):
             if "graph" in _sys.modules and hasattr(_sys.modules["graph"], _attr):
                 setattr(_sys.modules["graph"], _attr, _val)
 
-    def _on_success(self):
+    def _on_success(self, result: dict | None = None):
         self.run_btn.config(state="normal", text="▶  RUN PIPELINE")
         self.status_var.set("✅  Phase 1 Complete")
         self._log("═" * 48, "gold")
@@ -567,6 +628,25 @@ class Phase1Panel(tk.Frame):
         self._log("  outputs/scene_manifest.json", "green")
         self._log("  outputs/character_db.json",   "green")
         self._log("═" * 48, "gold")
+
+        # ── Snapshot state & push to Edit panel ──────────────────────────────
+        if result and self._app:
+            try:
+                from state_manager import get_state_manager
+                mgr = get_state_manager()
+                mgr.snapshot(
+                    result,
+                    asset_paths=[
+                        "outputs/scene_manifest.json",
+                        "outputs/character_db.json",
+                    ],
+                    label="Phase 1 complete",
+                )
+                self._app._current_pipeline_state = result
+                self._app.p4.load_state(result)
+                self._app.p4._refresh_history()
+            except Exception as exc:
+                self._log(f"  ⚠ State snapshot failed: {exc}", "dim")
 
     def _on_error(self, msg):
         self.run_btn.config(state="normal", text="▶  RUN PIPELINE")
@@ -579,9 +659,10 @@ class Phase1Panel(tk.Frame):
 # ══════════════════════════════════════════════════════════════════════════════
 
 class Phase2Panel(tk.Frame):
-    def __init__(self, parent, log_queue: queue.Queue, fonts: dict):
+    def __init__(self, parent, log_queue: queue.Queue, fonts: dict, app: App = None):
         super().__init__(parent, bg=BG)
         self.f = fonts
+        self._app = app
         self._log_queue = log_queue
         self._build_ui()
         self._poll_log()
@@ -824,7 +905,7 @@ class Phase2Panel(tk.Frame):
             self.after(0, lambda: self._mark_output("outputs/timing_manifest.json"))
             self.after(0, lambda: self._mark_output("outputs/logs/phase2_task_log.json"))
             self.after(0, lambda: self._mark_output("outputs/phase2_manifest.json"))
-            self.after(0, self._on_success)
+            self.after(0, lambda r=result: self._on_success(r))
 
         except Exception as e:
             import traceback
@@ -869,7 +950,7 @@ class Phase2Panel(tk.Frame):
         wrap(sp, "scene_parser_agent", "Scene Parser")
         wrap(vs, "voice_synth_agent",  "Voice Synthesis")
 
-    def _on_success(self):
+    def _on_success(self, result: dict | None = None):
         self.run_btn.config(state="normal", text="▶  RUN PHASE 2 PIPELINE")
         self.status_var.set("✅  Phase 2 Complete — The Studio Floor")
         self._log("═" * 52, "gold")
@@ -879,6 +960,24 @@ class Phase2Panel(tk.Frame):
         self._log("  outputs/logs/                — task graph execution log", "green")
         self._log("  outputs/phase2_manifest.json",                            "green")
         self._log("═" * 52, "gold")
+
+        # ── Snapshot state & push to Edit panel ──────────────────────────────
+        if result and self._app:
+            try:
+                import glob as _glob
+                from state_manager import get_state_manager
+                mgr = get_state_manager()
+                assets = (
+                    _glob.glob("outputs/audio/*.wav")
+                    + ["outputs/timing_manifest.json",
+                       "outputs/phase2_manifest.json"]
+                )
+                mgr.snapshot(result, asset_paths=assets, label="Phase 2 complete")
+                self._app._current_pipeline_state = result
+                self._app.p4.load_state(result)
+                self._app.p4._refresh_history()
+            except Exception as exc:
+                self._log(f"  ⚠ State snapshot failed: {exc}", "dim")
 
     def _on_error(self, msg: str, trace: str = ""):
         self.run_btn.config(state="normal", text="▶  RUN PHASE 2 PIPELINE")
