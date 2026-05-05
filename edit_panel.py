@@ -8,11 +8,6 @@ Provides:
   • Intent classification display
   • Version history panel with diff summaries
   • Undo / revert controls
-
-Integrates with:
-  • agents/edit_agent.py     — intent classification
-  • agents/edit_executor.py  — intent execution
-  • state_manager.py         — versioning & revert
 """
 
 from __future__ import annotations
@@ -22,10 +17,9 @@ import queue
 import threading
 import time
 import tkinter as tk
-from tkinter import scrolledtext, ttk
+from tkinter import scrolledtext
 from typing import Any
 
-# ── Colour palette (matches main.py) ─────────────────────────────────────────
 BG     = "#0f0f0f"
 BG2    = "#1a1a1a"
 BG3    = "#242424"
@@ -41,7 +35,6 @@ BLUE   = "#4c8caf"
 PURPLE = "#9c6caf"
 WHITE  = "#f5f0e8"
 
-# Intent → colour mapping
 INTENT_COLORS = {
     "audio":       BLUE,
     "video_frame": PURPLE,
@@ -51,20 +44,16 @@ INTENT_COLORS = {
 
 
 class EditPanel(tk.Frame):
-    """
-    Intelligent Edit & Undo panel.
-    Designed to be embedded as a tab in the main App window.
-    """
+    """Intelligent Edit & Undo panel — embeddable tab in the main App."""
 
     def __init__(self, parent, log_queue: queue.Queue, fonts: dict,
                  get_pipeline_state=None, set_pipeline_state=None):
         super().__init__(parent, bg=BG)
-        self.f                  = fonts
-        self._log_queue         = log_queue
-        self._get_pipeline_state = get_pipeline_state   # callable → state dict
-        self._set_pipeline_state = set_pipeline_state   # callable(state)
+        self.f                   = fonts
+        self._log_queue          = log_queue
+        self._get_pipeline_state = get_pipeline_state
+        self._set_pipeline_state = set_pipeline_state
         self._current_state: dict[str, Any] = {}
-        self._building = False
 
         from state_manager import get_state_manager
         self._mgr = get_state_manager()
@@ -73,9 +62,7 @@ class EditPanel(tk.Frame):
         self._poll_log()
         self._refresh_history()
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # UI construction
-    # ──────────────────────────────────────────────────────────────────────────
+    # ── UI construction ───────────────────────────────────────────────────────
 
     def _build_ui(self):
         self.columnconfigure(0, weight=3)
@@ -90,25 +77,23 @@ class EditPanel(tk.Frame):
         left.columnconfigure(0, weight=1)
         left.rowconfigure(5, weight=1)
 
-        # Title
         tk.Label(
-            left,
-            text="PHASE 4  ·  Intelligent Edit & Undo",
+            left, text="PHASE 4  ·  Intelligent Edit & Undo",
             font=self.f["label"], fg=GOLD, bg=BG,
         ).grid(row=0, column=0, sticky="w", pady=(0, 14))
 
-        # ── Edit query input ──────────────────────────────────────────────────
+        # Edit query
         tk.Label(left, text="DESCRIBE YOUR EDIT",
                  font=self.f["small"], fg=MUTED, bg=BG).grid(
             row=1, column=0, sticky="w")
 
         self._query_var = tk.StringVar()
-        query_frame = tk.Frame(left, bg=BG)
-        query_frame.grid(row=2, column=0, sticky="ew", pady=(4, 0))
-        query_frame.columnconfigure(0, weight=1)
+        qf = tk.Frame(left, bg=BG)
+        qf.grid(row=2, column=0, sticky="ew", pady=(4, 0))
+        qf.columnconfigure(0, weight=1)
 
         self._query_entry = tk.Entry(
-            query_frame, textvariable=self._query_var,
+            qf, textvariable=self._query_var,
             font=self.f["body"], bg=BG3, fg=CREAM,
             insertbackground=GOLD, relief="flat", bd=6,
         )
@@ -116,41 +101,37 @@ class EditPanel(tk.Frame):
         self._query_entry.bind("<Return>", lambda _: self._on_submit())
 
         tk.Button(
-            query_frame, text="▶ APPLY EDIT",
+            qf, text="▶ APPLY EDIT",
             font=self.f["btn"], fg=BG, bg=GOLD,
             activebackground=GOLD2, activeforeground=BG,
             relief="flat", padx=14, pady=4, cursor="hand2",
             command=self._on_submit,
         ).grid(row=0, column=1, padx=(8, 0))
 
-        # Example queries
+        # Example chips
         ex_frame = tk.Frame(left, bg=BG)
         ex_frame.grid(row=3, column=0, sticky="ew", pady=(6, 0))
         tk.Label(ex_frame, text="Examples: ", font=self.f["small"],
                  fg=MUTED, bg=BG).pack(side="left")
-        examples = [
-            "Make scene 1 darker",
-            "Change voice tone to whispered",
+        for ex in [
             "Apply noir filter",
+            "Make scene 1 darker",
+            "Apply sepia filter",
+            "Change voice tone to whispered",
             "Remove subtitle",
             "Speed up scene 2",
-        ]
-        for ex in examples:
-            btn = tk.Label(
-                ex_frame, text=ex, font=self.f["small"],
-                fg=BLUE, bg=BG, cursor="hand2",
-                padx=4,
-            )
-            btn.pack(side="left")
-            btn.bind("<Button-1>", lambda e, q=ex: self._fill_query(q))
+        ]:
+            lbl = tk.Label(ex_frame, text=ex, font=self.f["small"],
+                           fg=BLUE, bg=BG, cursor="hand2", padx=4)
+            lbl.pack(side="left")
+            lbl.bind("<Button-1>", lambda e, q=ex: self._fill_query(q))
 
-        # ── Classified intent display ─────────────────────────────────────────
+        # Intent display
         tk.Frame(left, bg=BORDER, height=1).grid(
-            row=4, column=0, sticky="ew", pady=(14, 10))
-        intent_hdr = tk.Frame(left, bg=BG)
-        intent_hdr.grid(row=4, column=0, sticky="ew", pady=(8, 4))
-        tk.Label(intent_hdr, text="LAST CLASSIFIED INTENT",
-                 font=self.f["small"], fg=MUTED, bg=BG).pack(side="left")
+            row=4, column=0, sticky="ew", pady=(14, 4))
+        tk.Label(left, text="LAST CLASSIFIED INTENT",
+                 font=self.f["small"], fg=MUTED, bg=BG).grid(
+            row=4, column=0, sticky="w", pady=(8, 4))
 
         self._intent_frame = tk.Frame(left, bg=BG2,
                                       highlightbackground=BORDER,
@@ -160,14 +141,13 @@ class EditPanel(tk.Frame):
         self._intent_frame.columnconfigure(1, weight=1)
         self._intent_labels: dict[str, tk.Label] = {}
 
-        intent_fields = [
+        for i, (key, caption) in enumerate([
             ("intent",     "Intent"),
             ("target",     "Target"),
             ("scope",      "Scope"),
             ("parameters", "Parameters"),
-        ]
-        for i, (key, label) in enumerate(intent_fields):
-            tk.Label(self._intent_frame, text=label + ":",
+        ]):
+            tk.Label(self._intent_frame, text=caption + ":",
                      font=self.f["small"], fg=MUTED, bg=BG2,
                      anchor="w", width=12).grid(row=i, column=0, sticky="w", pady=3)
             lbl = tk.Label(self._intent_frame, text="—",
@@ -176,7 +156,6 @@ class EditPanel(tk.Frame):
             lbl.grid(row=i, column=1, sticky="w", padx=(8, 0))
             self._intent_labels[key] = lbl
 
-        # Status bar
         self._status_var = tk.StringVar(value="Ready — enter an edit query above")
         tk.Label(left, textvariable=self._status_var,
                  font=self.f["small"], fg=MUTED, bg=BG).grid(
@@ -188,7 +167,6 @@ class EditPanel(tk.Frame):
         right.rowconfigure(2, weight=1)
         right.columnconfigure(0, weight=1)
 
-        # ── Version history header ────────────────────────────────────────────
         hdr = tk.Frame(right, bg=BG2)
         hdr.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         hdr.columnconfigure(0, weight=1)
@@ -197,37 +175,23 @@ class EditPanel(tk.Frame):
                  font=self.f["small"], fg=GOLD, bg=BG2).grid(
             row=0, column=0, sticky="w")
 
-        btn_frame = tk.Frame(hdr, bg=BG2)
-        btn_frame.grid(row=0, column=1, sticky="e")
-
-        self._undo_btn = tk.Button(
-            btn_frame, text="↩ UNDO",
-            font=self.f["small"], fg=BG, bg=GOLD,
-            relief="flat", padx=10, pady=3, cursor="hand2",
-            command=self._on_undo,
-        )
-        self._undo_btn.pack(side="left", padx=(0, 6))
-
-        tk.Button(
-            btn_frame, text="⟳ REFRESH",
-            font=self.f["small"], fg=MUTED, bg=BG3,
-            relief="flat", padx=10, pady=3, cursor="hand2",
-            command=self._refresh_history,
-        ).pack(side="left")
-
-        # ── Version list ──────────────────────────────────────────────────────
-        self._version_frame = tk.Frame(right, bg=BG2)
-        self._version_frame.grid(row=1, column=0, sticky="ew", pady=(0, 8))
-        self._version_frame.columnconfigure(0, weight=1)
+        bf = tk.Frame(hdr, bg=BG2)
+        bf.grid(row=0, column=1, sticky="e")
+        tk.Button(bf, text="↩ UNDO", font=self.f["small"], fg=BG, bg=GOLD,
+                  relief="flat", padx=10, pady=3, cursor="hand2",
+                  command=self._on_undo).pack(side="left", padx=(0, 6))
+        tk.Button(bf, text="⟳ REFRESH", font=self.f["small"], fg=MUTED, bg=BG3,
+                  relief="flat", padx=10, pady=3, cursor="hand2",
+                  command=self._refresh_history).pack(side="left")
 
         # Column headers
-        col_hdr = tk.Frame(self._version_frame, bg=BG3)
-        col_hdr.pack(fill="x", pady=(0, 2))
-        for text, w in [("#", 4), ("Label", 22), ("Time", 18), ("Changes", 30)]:
+        col_hdr = tk.Frame(right, bg=BG3)
+        col_hdr.grid(row=1, column=0, sticky="ew", pady=(0, 2))
+        for text, w in [("#", 4), ("Label", 22), ("Time", 10), ("Changes", 30)]:
             tk.Label(col_hdr, text=text, font=self.f["small"],
                      fg=GOLD, bg=BG3, width=w, anchor="w").pack(side="left", padx=2)
 
-        # Scrollable history list
+        # Scrollable list
         hist_outer = tk.Frame(right, bg=BG2)
         hist_outer.grid(row=2, column=0, sticky="nsew")
         hist_outer.rowconfigure(0, weight=1)
@@ -248,9 +212,8 @@ class EditPanel(tk.Frame):
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # ── Log ───────────────────────────────────────────────────────────────
-        tk.Frame(right, bg=BORDER, height=1).grid(
-            row=3, column=0, sticky="ew", pady=(6, 6))
+        # Log
+        tk.Frame(right, bg=BORDER, height=1).grid(row=3, column=0, sticky="ew", pady=(6, 6))
         tk.Label(right, text="EDIT LOG",
                  font=self.f["small"], fg=GOLD, bg=BG2).grid(
             row=4, column=0, sticky="w", pady=(0, 4))
@@ -261,27 +224,18 @@ class EditPanel(tk.Frame):
             insertbackground=GOLD, relief="flat",
         )
         self.log_box.grid(row=5, column=0, sticky="ew")
-        self.log_box.tag_config("gold",  foreground=GOLD)
-        self.log_box.tag_config("green", foreground=GREEN)
-        self.log_box.tag_config("red",   foreground=RED)
-        self.log_box.tag_config("blue",  foreground=BLUE)
-        self.log_box.tag_config("dim",   foreground=MUTED)
-        self.log_box.tag_config("purple",foreground=PURPLE)
+        for tag, color in [("gold", GOLD), ("green", GREEN), ("red", RED),
+                            ("blue", BLUE), ("dim", MUTED), ("purple", PURPLE)]:
+            self.log_box.tag_config(tag, foreground=color)
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # Public API — called by main App to inject current state
-    # ──────────────────────────────────────────────────────────────────────────
+    # ── Public API ────────────────────────────────────────────────────────────
 
     def load_state(self, state: dict):
-        """Inject the current pipeline state so edits can be applied."""
         self._current_state = state
-        self._status_var.set(
-            f"State loaded — {len(state.get('task_graph', []))} scene(s) available"
-        )
+        n = len(state.get("task_graph", []))
+        self._status_var.set(f"State loaded — {n} scene(s) available")
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # Handlers
-    # ──────────────────────────────────────────────────────────────────────────
+    # ── Handlers ──────────────────────────────────────────────────────────────
 
     def _fill_query(self, text: str):
         self._query_var.set(text)
@@ -301,44 +255,47 @@ class EditPanel(tk.Frame):
 
     def _on_revert_to(self, version_id: int):
         self._status_var.set(f"Reverting to v{version_id}…")
-        threading.Thread(target=self._revert_thread,
-                         args=(version_id,), daemon=True).start()
+        threading.Thread(target=self._revert_thread, args=(version_id,), daemon=True).start()
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # Background threads
-    # ──────────────────────────────────────────────────────────────────────────
+    # ── Background threads ────────────────────────────────────────────────────
 
     def _apply_edit_thread(self, query: str):
         try:
             from agents.edit_agent    import classify_edit_intent
             from agents.edit_executor import execute_edit
 
-            # 1. Classify
+            # 1. Classify intent (no model calls for filter/visual edits)
             intent = classify_edit_intent(query)
             self.after(0, lambda i=intent: self._show_intent(i))
-            self._log(f"  Intent: {intent['intent']} → target={intent['target']} "
-                      f"scope={intent['scope']}", "blue")
+            self._log(
+                f"  Intent: {intent['intent']} → target={intent['target']} "
+                f"scope={intent['scope']}  params={intent.get('parameters')}",
+                "blue",
+            )
 
-            # 2. Snapshot current state BEFORE applying edit
-            state = self._current_state or {}
-            self._mgr.snapshot(
+            state = dict(self._current_state)
+
+            # 2. Snapshot BEFORE edit
+            before_id = self._mgr.snapshot(
                 state,
                 asset_paths=self._collect_assets(),
                 label=f"Before: {query[:50]}",
             )
+            self._log(f"  Snapshot v{before_id} saved (pre-edit)", "dim")
 
-            # 3. Execute
+            # 3. Execute edit
             self._log(f"  Executing '{intent['intent']}'…", "dim")
             new_state, modified_assets, label = execute_edit(state, intent)
 
-            # 4. Snapshot AFTER applying edit
-            self._mgr.snapshot(
+            # 4. Snapshot AFTER edit (with the actually modified files)
+            after_id = self._mgr.snapshot(
                 new_state,
                 asset_paths=modified_assets or self._collect_assets(),
                 label=label,
             )
+            self._log(f"  Snapshot v{after_id} saved (post-edit, {len(modified_assets)} file(s))", "dim")
 
-            # 5. Push updated state back
+            # 5. Update live state
             self._current_state = new_state
             if self._set_pipeline_state:
                 self.after(0, lambda s=new_state: self._set_pipeline_state(s))
@@ -351,25 +308,26 @@ class EditPanel(tk.Frame):
             import traceback
             self._log(f"  ❌ Edit failed: {exc}", "red")
             self._log(traceback.format_exc(), "dim")
-            self.after(0, lambda: self._status_var.set(f"❌ Error — see log"))
+            self.after(0, lambda: self._status_var.set("❌ Error — see log"))
 
     def _undo_thread(self):
         try:
-            history = self._mgr.history()
-            # Find the previous version (skip the last 2 — before+after of last edit)
+            history = self._mgr.history()  # list[VersionRecord], newest first
             if len(history) < 2:
                 self.after(0, lambda: self._status_var.set("Nothing to undo"))
                 return
-            # The most recent "Before:" snapshot is our revert target
-            target_version = None
-            for rec in history:
-                if rec.label.startswith("Before:"):
-                    target_version = rec.version_id
-                    break
-            if target_version is None:
-                target_version = history[1].version_id  # second-most-recent
 
-            self._revert_to_version(target_version)
+            # Find the most recent "Before:" snapshot to revert to
+            # (skip index 0 = current; look from index 1 onward)
+            target_id = None
+            for rec in history[1:]:
+                if rec.label.startswith("Before:"):
+                    target_id = rec.version_id
+                    break
+            if target_id is None:
+                target_id = history[1].version_id  # second-most-recent
+
+            self._revert_to_version(target_id)
         except Exception as exc:
             self._log(f"  ❌ Undo failed: {exc}", "red")
             self.after(0, lambda: self._status_var.set("❌ Undo failed"))
@@ -381,7 +339,7 @@ class EditPanel(tk.Frame):
             self._log(f"  ❌ Revert failed: {exc}", "red")
 
     def _revert_to_version(self, version_id: int):
-        restored_state = self._mgr.revert(version_id)
+        restored_state = self._mgr.revert(version_id)  # restores files + returns state dict
         self._current_state = restored_state
         if self._set_pipeline_state:
             self.after(0, lambda s=restored_state: self._set_pipeline_state(s))
@@ -391,20 +349,18 @@ class EditPanel(tk.Frame):
         self.after(0, lambda: self._status_var.set(f"↩ Reverted to v{version_id}"))
         self.after(0, self._refresh_history)
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # History panel
-    # ──────────────────────────────────────────────────────────────────────────
+    # ── History panel ─────────────────────────────────────────────────────────
 
     def _refresh_history(self):
         for w in self._hist_inner.winfo_children():
             w.destroy()
 
         try:
-            records = self._mgr.history()
+            records = self._mgr.history()   # list[VersionRecord]
         except Exception:
             records = []
 
-        current = self._mgr.current_version()
+        current_vid = self._mgr.current_version()
 
         if not records:
             tk.Label(self._hist_inner, text="No versions yet.",
@@ -412,39 +368,35 @@ class EditPanel(tk.Frame):
             return
 
         for rec in records:
-            is_current = (rec.version_id == current)
-            row_bg = BG3 if is_current else BG2
-            row = tk.Frame(self._hist_inner, bg=row_bg,
-                           highlightbackground=GOLD if is_current else BORDER,
-                           highlightthickness=1 if is_current else 0)
+            is_current = (rec.version_id == current_vid)
+            row_bg     = BG3 if is_current else BG2
+            row = tk.Frame(
+                self._hist_inner, bg=row_bg,
+                highlightbackground=GOLD if is_current else BORDER,
+                highlightthickness=1 if is_current else 0,
+            )
             row.pack(fill="x", pady=2, padx=2)
             row.columnconfigure(3, weight=1)
 
-            # Version badge
             badge_fg = GOLD if is_current else MUTED
             tk.Label(row, text=f"v{rec.version_id}", font=self.f["small"],
                      fg=badge_fg, bg=row_bg, width=4, anchor="w").grid(
                 row=0, column=0, padx=(6, 2), pady=4)
 
-            # Label (truncated)
-            label_text = rec.label[:24] + "…" if len(rec.label) > 24 else rec.label
+            label_text = (rec.label[:24] + "…") if len(rec.label) > 24 else rec.label
             tk.Label(row, text=label_text, font=self.f["small"],
-                     fg=CREAM if is_current else MUTED, bg=row_bg,
-                     width=22, anchor="w").grid(row=0, column=1, padx=2)
+                     fg=CREAM if is_current else MUTED,
+                     bg=row_bg, width=22, anchor="w").grid(row=0, column=1, padx=2)
 
-            # Timestamp
             ts = time.strftime("%H:%M:%S", time.localtime(rec.timestamp))
             tk.Label(row, text=ts, font=self.f["small"],
-                     fg=MUTED, bg=row_bg, width=10, anchor="w").grid(
-                row=0, column=2, padx=2)
+                     fg=MUTED, bg=row_bg, width=10, anchor="w").grid(row=0, column=2, padx=2)
 
-            # Diff summary
-            diff_text = rec.diff_summary[:38] + "…" if len(rec.diff_summary) > 38 else rec.diff_summary
-            tk.Label(row, text=diff_text, font=self.f["small"],
+            diff = (rec.diff_summary[:36] + "…") if len(rec.diff_summary) > 36 else rec.diff_summary
+            tk.Label(row, text=diff, font=self.f["small"],
                      fg=MUTED, bg=row_bg, anchor="w").grid(
                 row=0, column=3, sticky="w", padx=(4, 2))
 
-            # Revert button
             if not is_current:
                 tk.Button(
                     row, text="↩",
@@ -456,31 +408,21 @@ class EditPanel(tk.Frame):
                 tk.Label(row, text="● CURRENT", font=self.f["small"],
                          fg=GREEN, bg=row_bg, padx=6).grid(row=0, column=4)
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # Intent display
-    # ──────────────────────────────────────────────────────────────────────────
+    # ── Intent display ────────────────────────────────────────────────────────
 
     def _show_intent(self, intent: dict):
         target = intent.get("target", "")
         color  = INTENT_COLORS.get(target, CREAM)
-
-        self._intent_labels["intent"].config(
-            text=intent.get("intent", "—"), fg=color)
-        self._intent_labels["target"].config(
-            text=target, fg=color)
-        self._intent_labels["scope"].config(
-            text=intent.get("scope", "all"), fg=CREAM)
+        self._intent_labels["intent"].config(text=intent.get("intent", "—"), fg=color)
+        self._intent_labels["target"].config(text=target, fg=color)
+        self._intent_labels["scope"].config(text=str(intent.get("scope", "all")), fg=CREAM)
         params = intent.get("parameters", {})
         self._intent_labels["parameters"].config(
-            text=json.dumps(params, indent=None) if params else "(none)",
-            fg=MUTED)
+            text=json.dumps(params) if params else "(none)", fg=MUTED)
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # Log helpers
-    # ──────────────────────────────────────────────────────────────────────────
+    # ── Log ───────────────────────────────────────────────────────────────────
 
     def _log(self, text: str, tag: str | None = None):
-        # Can be called from any thread
         self.after(0, lambda t=text, g=tag: self._log_main(t, g))
 
     def _log_main(self, text: str, tag: str | None):
@@ -505,16 +447,15 @@ class EditPanel(tk.Frame):
             pass
         self.after(120, self._poll_log)
 
-    # ──────────────────────────────────────────────────────────────────────────
-    # Asset collection
-    # ──────────────────────────────────────────────────────────────────────────
+    # ── Asset collection ──────────────────────────────────────────────────────
 
     def _collect_assets(self) -> list[str]:
-        """Gather all current output asset paths for snapshotting."""
         import glob as _glob
         patterns = [
             "outputs/audio/*.wav",
+            "outputs/audio/**/*.wav",
             "outputs/images/characters/*.png",
+            "outputs/images/**/*.png",
             "outputs/clips/*.mp4",
             "outputs/video/synced/*.mp4",
             "outputs/video/scenes/*.mp4",
@@ -525,5 +466,5 @@ class EditPanel(tk.Frame):
         ]
         assets: list[str] = []
         for pat in patterns:
-            assets.extend(_glob.glob(pat))
-        return assets
+            assets.extend(_glob.glob(pat, recursive=True))
+        return list(set(assets))

@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  background-color: #0f0f0f;
+  color: #f5f0e8;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+::-webkit-scrollbar-thumb {
+  background: #2e2e2e;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c9a84c44;
+}
+
+/* Log viewer colour classes */
+.log-gold   { color: #c9a84c; }
+.log-green  { color: #4caf84; }
+.log-red    { color: #c94c4c; }
+.log-blue   { color: #4c8caf; }
+.log-dim    { color: #7a7060; }
+.log-normal { color: #8aad8a; }
