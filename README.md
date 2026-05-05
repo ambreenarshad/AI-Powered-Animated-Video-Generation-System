@@ -160,7 +160,10 @@ DASHSCOPE_API_KEY=your_dashscope_api_key_here
 ## 🚀 Running the Application
 
 ```bash
-python main.py
+uvicorn api:app --reload --port 8000
+cd frontend
+npm install (for first time)
+npm run dev
 ```
 
 The GUI will launch with four tabs corresponding to the four pipeline phases.
