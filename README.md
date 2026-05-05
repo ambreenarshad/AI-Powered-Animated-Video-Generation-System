@@ -7,7 +7,7 @@
 
 ## 📌 Overview
 
-**Project Montage** is an end-to-end autonomous video generation pipeline that converts textual narratives or screenplays into fully animated videos with synchronized audio and cinematic visual effects.
+**Project AI-Powered Animated Video Generation System** is an end-to-end autonomous video generation pipeline that converts textual narratives or screenplays into fully animated videos with synchronized audio and cinematic visual effects.
 
 The system operates across **four sequential phases**:
 
